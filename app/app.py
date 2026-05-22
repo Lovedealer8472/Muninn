@@ -130,6 +130,8 @@ EVENT_FIELD_LABELS = {
     "_email_notify": "Tilkynning",
 }
 
+EMAIL_SAGA_SKIP = frozenset({"pending", "skipped"})
+
 # ── Attachments config ──────────────────────────────────────────────
 
 UPLOAD_ROOT = os.path.join(app.root_path, "uploads")
@@ -300,6 +302,33 @@ def log_order_event(db, order_id, field_name, old_value, new_value):
         """,
         (order_id, field_name, old_value, new_value, now),
     )
+
+
+def _email_saga_text(order, result: str) -> Optional[str]:
+    if result in EMAIL_SAGA_SKIP:
+        return None
+    status = (order.get("status") if isinstance(order, dict) else order["status"]) or ""
+    email = (
+        (order.get("email") if isinstance(order, dict) else order["email"]) or ""
+    ).strip()
+    if result == "sent":
+        if email:
+            return f"Sendt til {email} — stöða: {status}"
+        return f"Sendt til viðskiptavinar — stöða: {status}"
+    if result == "failed":
+        target = email or "viðskiptavinar"
+        return f"Mistókst að senda til {target} — stöða: {status}"
+    if result == "no_email":
+        return f"Ekki sent (ekki netfang) — stöða: {status}"
+    if result == "no_smtp":
+        return f"Ekki sent (SMTP ekki stillt) — stöða: {status}"
+    return None
+
+
+def log_email_notify_event(db, order_id: int, order, result: str) -> None:
+    text = _email_saga_text(order, result)
+    if text:
+        log_order_event(db, order_id, "_email_notify", "", text)
 
 
 def log_tracked_changes(db, order_id, before, after):
@@ -719,15 +748,17 @@ def _queue_customer_email(order_id: int, order: dict) -> None:
                 print(f"Background email error: {e}")
                 result = "failed"
             conn = sqlite3.connect(DATABASE)
-            now = datetime.now().isoformat(timespec="seconds")
-            conn.execute(
-                """
-                INSERT INTO order_events
-                    (order_id, field_name, old_value, new_value, created_at)
-                VALUES (?, '_email_notify', 'pending', ?, ?)
-                """,
-                (order_id, result, now),
-            )
+            text = _email_saga_text(order, result)
+            if text:
+                now = datetime.now().isoformat(timespec="seconds")
+                conn.execute(
+                    """
+                    INSERT INTO order_events
+                        (order_id, field_name, old_value, new_value, created_at)
+                    VALUES (?, '_email_notify', '', ?, ?)
+                    """,
+                    (order_id, text, now),
+                )
             if result == "sent":
                 conn.execute(
                     "UPDATE orders SET suppress_auto_email = 0 WHERE id = ?",
@@ -743,9 +774,9 @@ def dispatch_customer_email(db, order_id: int, order) -> str:
     """Queue SMTP in background when needed; return result code for UI."""
     preview = _preview_email_result(order)
     if preview != "pending":
+        log_email_notify_event(db, order_id, order, preview)
+        db.commit()
         return preview
-    log_order_event(db, order_id, "_email_notify", "", "pending")
-    db.commit()
     _queue_customer_email(order_id, dict(order))
     return "pending"
 
@@ -800,7 +831,18 @@ def _latest_email_notify_result(db, order_id: int) -> Optional[str]:
         """,
         (order_id,),
     ).fetchone()
-    return row["new_value"] if row else None
+    if not row:
+        return None
+    text = row["new_value"] or ""
+    if text.startswith("Sendt til"):
+        return "sent"
+    if text.startswith("Mistókst"):
+        return "failed"
+    if "ekki netfang" in text:
+        return "no_email"
+    if "SMTP" in text:
+        return "no_smtp"
+    return "pending" if text == "pending" else None
 
 
 def _pop_email_notice(order_id: int) -> Optional[dict]:
@@ -1146,7 +1188,7 @@ def order_detail(order_id):
 
     today = datetime.now().strftime("%Y-%m-%d")
     status_idx = STATUSES.index(order["status"]) if order["status"] in STATUSES else 0
-    events = get_order_events(db, order_id)
+    events = get_order_events(db, order_id, limit=25)
     comments = get_order_comments(db, order_id)
     track_url = track_public_url()
     return render_template(

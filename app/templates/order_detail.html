@@ -190,6 +190,10 @@
                         <span class="order-saga-text">Pöntun stofnuð</span>
                     {% elif e.field_name == '_comment' %}
                         <span class="order-saga-text">Ummæli: {{ e.new_value }}</span>
+                    {% elif e.field_name == '_email_notify' %}
+                        <span class="order-saga-text">Póstur: {{ e.new_value }}</span>
+                    {% elif e.field_name == '_restored' %}
+                        <span class="order-saga-text">Endurheimt úr rusli</span>
                     {% elif e.old_value %}
                         <span class="order-saga-text">{{ event_labels.get(e.field_name, e.field_name) }}: {{ e.old_value }} → {{ e.new_value }}</span>
                     {% else %}
