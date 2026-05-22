@@ -17,7 +17,8 @@
 </div>
 <div class="detail-wrap">
     {% if email_notice %}
-    <div class="email-notice email-notice--{{ email_notice.kind }}" role="status">{{ email_notice.text }}</div>
+    <div id="email-notice" class="email-notice email-notice--{{ email_notice.kind }}" role="status"
+         {% if email_notice.poll %}data-email-poll="{{ order.id }}"{% endif %}>{{ email_notice.text }}</div>
     {% endif %}
     <div class="detail-card">
         <div class="detail-hero">
@@ -428,6 +429,29 @@
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape' && !modal.hidden) { closeModal(); }
     });
+})();
+</script>
+<script>
+(function () {
+    var banner = document.getElementById('email-notice');
+    if (!banner || !banner.dataset.emailPoll) { return; }
+    var orderId = banner.dataset.emailPoll;
+    var url = '/api/order/' + encodeURIComponent(orderId) + '/notification-status';
+    var tries = 0;
+    var timer = setInterval(function () {
+        tries += 1;
+        if (tries > 40) { clearInterval(timer); return; }
+        fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+                if (!data || data.status === 'pending') { return; }
+                clearInterval(timer);
+                banner.textContent = data.text || '';
+                banner.className = 'email-notice email-notice--' + (data.kind || 'info');
+                delete banner.dataset.emailPoll;
+            })
+            .catch(function () { /* ignore */ });
+    }, 500);
 })();
 </script>
 {% endblock %}

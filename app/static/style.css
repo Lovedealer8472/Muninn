@@ -55,6 +55,7 @@ a:hover { text-decoration: underline; }
 .flash.error   { background: #ffebe6; color: #bf2600; }
 .flash.info    { background: #deebff; color: #0747a6; }
 .flash.warning { background: #fff7d6; color: #7a5c00; }
+.flash.pending { background: #f4f5f7; color: var(--text); }
 
 /* ── Login ───────────────────────────────────────────────────── */
 .login-wrap {
@@ -408,6 +409,21 @@ a:hover { text-decoration: underline; }
 .email-notice--error   { background: #ffebe6; color: #bf2600; border: 1px solid #ff8f73; }
 .email-notice--info    { background: #deebff; color: #0747a6; border: 1px solid #85b8ff; }
 .email-notice--warning { background: #fff7d6; color: #7a5c00; border: 1px solid #ffc400; }
+.email-notice--pending {
+    background: #f4f5f7;
+    color: var(--text);
+    border: 1px solid var(--border);
+    animation: email-pulse 1.2s ease-in-out infinite;
+}
+@keyframes email-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .65; }
+}
+[data-theme="dark"] .email-notice--pending {
+    background: #22262d;
+    color: var(--text);
+    border-color: var(--border);
+}
 [data-theme="dark"] .email-notice--success { background: #0e3b26; color: #57d9a3; border-color: #216e4e; }
 [data-theme="dark"] .email-notice--error   { background: #4a1c10; color: #ff8f73; border-color: #8f3d2b; }
 [data-theme="dark"] .email-notice--info    { background: #1c2b4a; color: #85b8ff; border-color: #388bff; }

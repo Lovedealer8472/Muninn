@@ -16,6 +16,7 @@ from flask import (
     abort,
     flash,
     g,
+    has_request_context,
     jsonify,
     redirect,
     render_template,
@@ -126,6 +127,7 @@ EVENT_FIELD_LABELS = {
     "estimated_arrival": "Áætluð koma",
     "_created": "Stofnað",
     "_comment": "Ummæli",
+    "_email_notify": "Tilkynning",
 }
 
 # ── Attachments config ──────────────────────────────────────────────
@@ -628,17 +630,26 @@ def _send_email(to_email, subject, body):
         return False
 
 
-def send_notification_email(order, *, background=False) -> str:
-    """Send status email. Returns: skipped | no_email | no_smtp | sent | failed | queued."""
+def _customer_track_url() -> str:
+    base = os.environ.get("TRACK_PUBLIC_URL", "").strip().rstrip("/")
+    if base:
+        return f"{base}/track" if not base.endswith("/track") else base
+    if has_request_context():
+        return track_public_url()
+    return "https://th.tolvuhvislarinn.is/track"
+
+
+def _build_notification_message(order):
+    """Return (to_email, subject, body) or None if no send possible."""
     status = order["status"]
     if status not in CUSTOMER_EMAIL_STATUSES:
-        return "skipped"
-    cfg = _smtp_config()
+        return None
     to_email = (order["email"] or "").strip()
     if not to_email:
-        return "no_email"
+        return None
+    cfg = _smtp_config()
     if not cfg["server"] or not cfg["user"] or not cfg["password"]:
-        return "no_smtp"
+        return None
 
     shop_name = cfg["shop_name"]
     footer = f"---\nKeyrt af Muninn · https://muninn.tolvuhvislarinn.is"
@@ -656,7 +667,6 @@ def send_notification_email(order, *, background=False) -> str:
             f"{footer}"
         )
         subject = f"Pöntun #{order['id']} staðfest – {shop_name}"
-
     elif status == "Komið":
         body = (
             f"Sæl(l) {order['customer_name']},\n\n"
@@ -667,9 +677,8 @@ def send_notification_email(order, *, background=False) -> str:
             f"{footer}"
         )
         subject = f"Varan þín er komin – {shop_name}"
-
     else:
-        track_url = f"{request.host_url.rstrip('/')}{url_for('track')}"
+        track_url = _customer_track_url()
         body = (
             f"Sæl(l) {order['customer_name']},\n\n"
             f"Staða pöntunar þinnar (#{order['id']} – {order['product_name']}) "
@@ -680,11 +689,82 @@ def send_notification_email(order, *, background=False) -> str:
         )
         subject = f"Uppfærsla á pöntun #{order['id']} – {shop_name}"
 
+    return to_email, subject, body
+
+
+def _preview_email_result(order) -> str:
+    """Immediate result without SMTP (skipped / config / no address)."""
+    if order["status"] not in CUSTOMER_EMAIL_STATUSES:
+        return "skipped"
+    if not (order["email"] or "").strip():
+        return "no_email"
+    cfg = _smtp_config()
+    if not cfg["server"] or not cfg["user"] or not cfg["password"]:
+        return "no_smtp"
+    return "pending"
+
+
+def _queue_customer_email(order_id: int, order: dict) -> None:
+    def work():
+        with app.app_context():
+            result = "failed"
+            try:
+                built = _build_notification_message(order)
+                if not built:
+                    result = "skipped"
+                else:
+                    to_email, subject, body = built
+                    result = "sent" if _send_email(to_email, subject, body) else "failed"
+            except Exception as e:
+                print(f"Background email error: {e}")
+                result = "failed"
+            conn = sqlite3.connect(DATABASE)
+            now = datetime.now().isoformat(timespec="seconds")
+            conn.execute(
+                """
+                INSERT INTO order_events
+                    (order_id, field_name, old_value, new_value, created_at)
+                VALUES (?, '_email_notify', 'pending', ?, ?)
+                """,
+                (order_id, result, now),
+            )
+            if result == "sent":
+                conn.execute(
+                    "UPDATE orders SET suppress_auto_email = 0 WHERE id = ?",
+                    (order_id,),
+                )
+            conn.commit()
+            conn.close()
+
+    threading.Thread(target=work, daemon=True).start()
+
+
+def dispatch_customer_email(db, order_id: int, order) -> str:
+    """Queue SMTP in background when needed; return result code for UI."""
+    preview = _preview_email_result(order)
+    if preview != "pending":
+        return preview
+    log_order_event(db, order_id, "_email_notify", "", "pending")
+    db.commit()
+    _queue_customer_email(order_id, dict(order))
+    return "pending"
+
+
+def send_notification_email(order, *, background=False) -> str:
+    """Send status email. Returns: skipped | no_email | no_smtp | sent | failed | pending."""
+    preview = _preview_email_result(order)
+    if preview != "pending":
+        return preview
+
+    built = _build_notification_message(order)
+    if not built:
+        return "skipped"
+    to_email, subject, body = built
+
     if background:
-        threading.Thread(
-            target=_send_email, args=(to_email, subject, body)
-        ).start()
-        return "queued"
+        order_id = order["id"]
+        _queue_customer_email(order_id, dict(order))
+        return "pending"
 
     return "sent" if _send_email(to_email, subject, body) else "failed"
 
@@ -696,6 +776,7 @@ def _flash_email_result(result: str) -> None:
         "no_email": ("Enginn póstur (ekki netfang skráð).", "info"),
         "no_smtp": ("Póstur ekki sendur (SMTP ekki stillt).", "warning"),
         "queued": ("Tilkynning send í bakgrunni.", "success"),
+        "pending": ("Tilkynning sendist…", "pending"),
     }
     if result in messages:
         flash(*messages[result])
@@ -706,15 +787,32 @@ EMAIL_NOTICE = {
     "failed": ("Póstur mistókst — reyndu aftur eða hringdu í viðskiptavin.", "error"),
     "no_email": ("Enginn póstur sendur (ekki netfang skráð).", "info"),
     "no_smtp": ("Póstur ekki sendur (SMTP ekki stillt á netþjóni).", "warning"),
+    "pending": ("Tilkynning sendist…", "pending"),
 }
+
+
+def _latest_email_notify_result(db, order_id: int) -> Optional[str]:
+    row = db.execute(
+        """
+        SELECT new_value FROM order_events
+        WHERE order_id = ? AND field_name = '_email_notify'
+        ORDER BY id DESC LIMIT 1
+        """,
+        (order_id,),
+    ).fetchone()
+    return row["new_value"] if row else None
 
 
 def _pop_email_notice(order_id: int) -> Optional[dict]:
     result = session.pop(f"email_notice_{order_id}", None)
-    if not result or result not in EMAIL_NOTICE:
+    if not result:
+        return None
+    if result == "pending":
+        return {"text": EMAIL_NOTICE["pending"][0], "kind": "pending", "poll": True}
+    if result not in EMAIL_NOTICE:
         return None
     text, kind = EMAIL_NOTICE[result]
-    return {"text": text, "kind": kind}
+    return {"text": text, "kind": kind, "poll": False}
 
 
 # ── Routes: PWA (optional; disable with PWA_ENABLED=0) ───────────────
@@ -1186,10 +1284,7 @@ def order_edit(order_id):
             updated_order = db.execute(
                 "SELECT * FROM orders WHERE id = ?", (order_id,)
             ).fetchone()
-            result = send_notification_email(updated_order)
-            if result == "sent":
-                _clear_email_suppress(db, order_id)
-                db.commit()
+            result = dispatch_customer_email(db, order_id, updated_order)
             flash("Pöntun uppfærð.", "success")
             _flash_email_result(result)
             return redirect(url_for("board"))
@@ -1340,14 +1435,27 @@ def order_status(order_id):
         updated_order = db.execute(
             "SELECT * FROM orders WHERE id = ?", (order_id,)
         ).fetchone()
-        result = send_notification_email(updated_order)
-        if result == "sent":
-            _clear_email_suppress(db, order_id)
-            db.commit()
-        session[f"email_notice_{order_id}"] = result
+        session[f"email_notice_{order_id}"] = dispatch_customer_email(
+            db, order_id, updated_order
+        )
     flash("Staða uppfærð.", "success")
 
     return redirect(url_for("order_detail", order_id=order_id))
+
+
+@app.route("/api/order/<int:order_id>/notification-status")
+@login_required
+def order_notification_status_api(order_id):
+    db = get_db()
+    if _get_order(db, order_id) is None:
+        abort(404)
+    result = _latest_email_notify_result(db, order_id)
+    if not result or result == "pending":
+        return jsonify({"status": "pending"})
+    if result not in EMAIL_NOTICE:
+        return jsonify({"status": "done", "result": result, "text": result, "kind": "info"})
+    text, kind = EMAIL_NOTICE[result]
+    return jsonify({"status": "done", "result": result, "text": text, "kind": kind})
 
 
 # ── Routes: Quick contact-status change ────────────────────────────
