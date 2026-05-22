@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="is">
+<head>
+<meta charset="utf-8">
+<title>Pöntun #{{ order.id }} – {{ order.customer_name }}</title>
+<style>
+    @page { size: A4 portrait; margin: 18mm; }
+    html, body {
+        margin: 0;
+        padding: 0;
+        background: #fff;
+        color: #000;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                     "Helvetica Neue", Arial, sans-serif;
+        font-size: 12pt;
+        line-height: 1.4;
+    }
+    .sheet {
+        max-width: 174mm;
+        margin: 0 auto;
+        padding: 8mm 0;
+    }
+    .head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        border-bottom: 2pt solid #000;
+        padding-bottom: 6pt;
+        margin-bottom: 14pt;
+    }
+    .head .brand {
+        font-size: 11pt;
+        text-transform: uppercase;
+        letter-spacing: 1pt;
+        color: #555;
+    }
+    .head .order-no {
+        font-size: 36pt;
+        font-weight: 800;
+        line-height: 1;
+    }
+    .customer {
+        font-size: 22pt;
+        font-weight: 700;
+        margin: 0 0 4pt 0;
+    }
+    .product {
+        font-size: 16pt;
+        margin: 0 0 14pt 0;
+    }
+    dl.grid {
+        display: grid;
+        grid-template-columns: 38mm 1fr;
+        gap: 4pt 10pt;
+        margin: 0 0 14pt 0;
+    }
+    dl.grid dt {
+        font-weight: 600;
+        color: #333;
+    }
+    dl.grid dd {
+        margin: 0;
+    }
+    .section-title {
+        font-size: 11pt;
+        text-transform: uppercase;
+        letter-spacing: 1pt;
+        color: #555;
+        margin: 14pt 0 4pt 0;
+        border-bottom: 1pt solid #999;
+        padding-bottom: 2pt;
+    }
+    .notes {
+        white-space: pre-wrap;
+        border: 1pt solid #999;
+        padding: 6pt 8pt;
+        min-height: 18mm;
+    }
+    .signoff {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14mm;
+        margin-top: 22pt;
+    }
+    .signoff .line {
+        border-top: 1pt solid #000;
+        padding-top: 4pt;
+        font-size: 10pt;
+        color: #333;
+    }
+    .footer {
+        margin-top: 22pt;
+        font-size: 9pt;
+        color: #666;
+        text-align: right;
+    }
+    .no-print {
+        position: fixed;
+        top: 8mm;
+        right: 8mm;
+        display: flex;
+        gap: 8px;
+    }
+    .no-print button {
+        padding: 8px 14px;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    @media print {
+        .no-print { display: none !important; }
+    }
+</style>
+</head>
+<body>
+<div class="no-print">
+    <button onclick="window.print()">Prenta</button>
+    <button onclick="window.close()">Loka</button>
+</div>
+<div class="sheet">
+    <div class="head">
+        <div class="brand">{{ shop_name }}</div>
+        <div class="order-no">#{{ order.id }}</div>
+    </div>
+
+    <h1 class="customer">{{ order.customer_name }}</h1>
+    <div class="product">
+        {{ order.product_name }}{% if order.product_model %} – {{ order.product_model }}{% endif %}
+    </div>
+
+    <dl class="grid">
+        <dt>Sími</dt><dd>{{ order.phone or '–' }}</dd>
+        <dt>Netfang</dt><dd>{{ order.email or '–' }}</dd>
+        <dt>Birgir</dt><dd>{{ order.supplier or '–' }}</dd>
+        <dt>Staða</dt><dd>{{ order.status }}</dd>
+        <dt>Forgangur</dt><dd>{{ order.priority }}</dd>
+        <dt>Greiðslustaða</dt><dd>{{ order.payment_status }}</dd>
+        <dt>Dagsetning beiðni</dt><dd>{{ order.date_requested or '–' }}</dd>
+        <dt>Pöntun send</dt><dd>{{ order.date_ordered or '–' }}</dd>
+        <dt>Áætluð koma</dt><dd>{{ order.estimated_arrival or '–' }}</dd>
+        <dt>Vara komin</dt><dd>{{ order.date_arrived or '–' }}</dd>
+    </dl>
+
+    {% if order.notes %}
+    <div class="section-title">Athugasemdir</div>
+    <div class="notes">{{ order.notes }}</div>
+    {% endif %}
+
+    <div class="signoff">
+        <div class="line">Pakkað af / dags.</div>
+        <div class="line">Móttekið af viðskiptavin / dags.</div>
+    </div>
+
+    <div class="footer">
+        Prentað {{ printed_at }} · {{ printed_by }}
+    </div>
+</div>
+<script>
+    window.addEventListener('load', function () {
+        setTimeout(function () { window.print(); }, 150);
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+# Runtime / secrets
+app/pantanakerfi.db
+app/uploads/
+app/venv/
+app/.env
+*.pyc
+__pycache__/
+.DS_Store
+
+# Local
+*.db-journal
+*.log

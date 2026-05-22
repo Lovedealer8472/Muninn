@@ -1,0 +1,17 @@
+<button type="button" class="btn btn-secondary" id="qr-open-btn"
+        data-track-url="{{ track_url }}" title="QR fyrir viðskiptavin">
+    QR
+</button>
+
+<div id="qr-modal" class="qr-modal" hidden aria-hidden="true">
+    <div class="qr-modal-backdrop" data-qr-close></div>
+    <div class="qr-modal-panel" role="dialog" aria-labelledby="qr-modal-title">
+        <h3 id="qr-modal-title">QR – stöðusíða</h3>
+        <p class="qr-modal-hint">Viðskiptavinir skanna og slá inn símanúmer til að fylgjast með pöntun.</p>
+        <div id="qr-canvas-wrap" class="qr-canvas-wrap"></div>
+        <p class="qr-modal-url"><a id="qr-link" href="{{ track_url }}" target="_blank" rel="noopener">{{ track_url }}</a></p>
+        <div class="qr-modal-actions">
+            <button type="button" class="btn btn-secondary btn-sm" data-qr-close>Loka</button>
+        </div>
+    </div>
+</div>

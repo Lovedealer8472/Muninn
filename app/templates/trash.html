@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Rusl – Muninn{% endblock %}
+{% block body %}
+<div class="header">
+    <div class="brand-wrap">
+        <a href="{{ url_for('board') }}" class="brand-link">
+            <img src="{{ url_for('static', filename='muninn_logo_transparent.png') }}" class="brand-raven" alt="Muninn" onclick="cawCaw(event)">
+            <span class="brand-text">Muninn</span>
+        </a>
+    </div>
+    <div class="header-actions">
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('board') }}">Til baka á borð</a>
+        <button class="theme-toggle" onclick="toggleTheme()" title="Ljóst/Dökkt"></button>
+    </div>
+</div>
+
+<div class="trash-wrap">
+    <h2 class="trash-title">Rusl</h2>
+    <p class="trash-hint">Eyddar pantanir geymast í {{ retention_days }} daga áður en þær eru fjarlægðar varanlega.</p>
+
+    {% if orders %}
+    <ul class="trash-list">
+        {% for order in orders %}
+        <li class="trash-item">
+            <div class="trash-item-main">
+                <div class="trash-item-title">
+                    <strong>{{ order.customer_name }}</strong>
+                    <span class="trash-item-id">#{{ order.id }}</span>
+                </div>
+                <div class="trash-item-sub">{{ order.product_name }}{% if order.product_model %} – {{ order.product_model }}{% endif %}</div>
+                <div class="trash-item-meta">
+                    {{ order.status }} · Eytt {{ order.deleted_at[:16].replace('T', ' ') }}
+                </div>
+            </div>
+            <div class="trash-item-actions">
+                <form method="post" action="{{ url_for('order_restore', order_id=order.id) }}">
+                    <button type="submit" class="btn btn-primary btn-sm">Endurheimta</button>
+                </form>
+                <form method="post" action="{{ url_for('order_purge', order_id=order.id) }}"
+                      onsubmit="return confirm('Eyða þessari pöntun varanlega? Ekki hægt að afturkalla.');">
+                    <button type="submit" class="btn btn-danger btn-sm">Eyða varanlega</button>
+                </form>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="trash-empty">Ruslið er tómt.</p>
+    {% endif %}
+</div>
+{% endblock %}

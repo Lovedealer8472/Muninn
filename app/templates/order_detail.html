@@ -1,0 +1,410 @@
+{% extends "base.html" %}
+{% block title %}Pöntun #{{ order.id }} – Muninn{% endblock %}
+{% block body %}
+<div class="header">
+    <div class="brand-wrap">
+        <a href="{{ url_for('board') }}" class="brand-link">
+            <img src="{{ url_for('static', filename='muninn_logo_transparent.png') }}" class="brand-raven" alt="Muninn" onclick="cawCaw(event)">
+            <span class="brand-text">Muninn</span>
+        </a>
+    </div>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Ljóst/Dökkt"></button>
+</div>
+<div class="detail-wrap">
+    <div class="detail-card">
+        <div class="detail-hero">
+            <div class="detail-hero-main">
+                <div class="detail-hero-title">
+                    <h2>{{ order.customer_name }}</h2>
+                    <span class="detail-order-id">#{{ order.id }}</span>
+                </div>
+                <div class="sub">{{ order.product_name }}{% if order.product_model %} – {{ order.product_model }}{% endif %}</div>
+                <div class="detail-status-pipeline detail-status-pipeline--compact">
+            {% for s in statuses %}
+                <span class="step
+                    {%- if loop.index0 < status_idx %} done
+                    {%- elif loop.index0 == status_idx %} active{% endif %}"
+                    title="{{ status_help.get(s, s) }}">
+                    {{ s }}{% if s == 'Lokið' %}<span class="step-hint"> (afhent)</span>{% endif %}
+                </span>
+            {% endfor %}
+                </div>
+            </div>
+            <div class="detail-actions" aria-label="Aðgerðir">
+                {% include 'qr_modal.html' %}
+                <a class="btn btn-secondary" href="{{ url_for('order_edit', order_id=order.id) }}">Breyta</a>
+                <a class="btn btn-secondary" href="{{ url_for('order_print', order_id=order.id) }}" target="_blank" rel="noopener">Prenta</a>
+
+                {% if status_idx < statuses|length - 1 %}
+                <button type="button" class="btn btn-primary" id="status-open-btn" title="Færa í {{ statuses[status_idx + 1] }}">Færa áfram</button>
+
+                <div id="status-modal" class="qr-modal" hidden aria-hidden="true">
+                    <div class="qr-modal-backdrop" data-status-close></div>
+                    <div class="qr-modal-panel" role="dialog" aria-labelledby="status-modal-title" style="text-align: left;">
+                        <h3 id="status-modal-title" style="margin-top: 0;">Færa áfram í {{ statuses[status_idx + 1] }}</h3>
+                        <p class="qr-modal-hint" style="margin-bottom: 1rem; font-size: .9rem;">Ertu viss um að þú viljir færa þessa pöntun á næsta stig?</p>
+                        
+                        <form method="post" action="{{ url_for('order_status', order_id=order.id) }}">
+                            <input type="hidden" name="status" value="{{ statuses[status_idx + 1] }}">
+                            <div class="form-group form-group--check" style="margin-bottom: 1.5rem; justify-content: flex-start;">
+                                <input type="checkbox" id="send_notification_modal" name="send_notification" value="1" checked>
+                                <label for="send_notification_modal">Senda tilkynningu í tölvupósti til viðskiptavinar</label>
+                            </div>
+                            <div class="qr-modal-actions" style="gap: .5rem; justify-content: flex-start;">
+                                <button type="submit" class="btn btn-primary">Færa áfram</button>
+                                <button type="button" class="btn btn-secondary" data-status-close>Hætta við</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+
+                <form class="detail-action-form" method="post" action="{{ url_for('order_delete', order_id=order.id) }}"
+                      onsubmit="return confirm('Færa pöntun í rusl? Hægt að endurheimta innan 30 daga.');">
+                    <button type="submit" class="btn btn-danger" title="Færa í rusl">Eyða</button>
+                </form>
+
+                <a class="btn btn-secondary" href="{{ url_for('board') }}">Til baka</a>
+            </div>
+        </div>
+
+        <dl class="detail-grid detail-grid--compact">
+            <dt>Símanúmer</dt>
+            <dd>{{ order.phone or '–' }}</dd>
+
+            <dt>Netfang</dt>
+            <dd>{{ order.email or '–' }}</dd>
+
+            <dt>Birgir</dt>
+            <dd>{{ order.supplier or '–' }}</dd>
+
+            <dt>Forgangur</dt>
+            <dd>{{ order.priority }}</dd>
+
+            <dt>Greiðslustaða</dt>
+            <dd>{{ order.payment_status }}</dd>
+
+            <dt>Samskiptastaða</dt>
+            <dd>
+                <form method="post"
+                      action="{{ url_for('order_contact_status', order_id=order.id) }}"
+                      class="inline-select-form">
+                    <select name="contact_status" onchange="this.form.submit()"
+                            aria-label="Breyta samskiptastöðu">
+                        {% for opt in contact_options %}
+                            <option value="{{ opt }}"
+                                {% if opt == order.contact_status %}selected{% endif %}>
+                                {{ opt }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </dd>
+
+            <dt>Dagsetning beiðni</dt>
+            <dd>{{ order.date_requested or '–' }}</dd>
+
+            <dt>Pöntun send</dt>
+            <dd>{{ order.date_ordered or '–' }}</dd>
+
+            <dt>Áætluð koma</dt>
+            <dd>
+                {{ order.estimated_arrival or '–' }}
+                {% if order.estimated_arrival and order.estimated_arrival < today and order.status not in ['Komið', 'Lokið'] %}
+                    <span class="badge badge-overdue">Seinkað</span>
+                {% endif %}
+            </dd>
+
+            <dt>Vara komin</dt>
+            <dd>{{ order.date_arrived or '–' }}</dd>
+
+            <dt>Lokið</dt>
+            <dd>{{ order.date_completed or '–' }}</dd>
+
+            <dt>Skráð / uppfært</dt>
+            <dd class="detail-meta-dates">{{ order.created_at[:16].replace('T', ' ') }} · {{ order.updated_at[:16].replace('T', ' ') }}</dd>
+        </dl>
+
+        {% if order.notes %}
+        <div class="detail-notes">
+            <h3>Innri athugasemd</h3>
+            <p>{{ order.notes }}</p>
+        </div>
+        {% endif %}
+
+        <div class="order-comments">
+            <h3>Ummæli{% if comments %} ({{ comments|length }}){% endif %}</h3>
+            {% if comments %}
+            <ul class="order-comments-list">
+                {% for c in comments %}
+                <li class="order-comment">
+                    <div class="order-comment-meta">
+                        <span class="order-comment-author">{{ c.author }}</span>
+                        <time class="order-comment-time">{{ c.created_at[:16].replace('T', ' ') }}</time>
+                    </div>
+                    <p class="order-comment-body">{{ c.body }}</p>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="order-comments-empty">Engin ummæli enn.</p>
+            {% endif %}
+            <form method="post" action="{{ url_for('order_comment_add', order_id=order.id) }}" class="order-comment-form">
+                <textarea name="body" rows="3" required maxlength="4000" placeholder="Skrifaðu athugasemd…" aria-label="Ný athugasemd"></textarea>
+                <button type="submit" class="btn btn-secondary">Bæta við athugasemd</button>
+            </form>
+        </div>
+
+        <details class="order-saga">
+            <summary>Saga{% if events %} ({{ events|length }}){% endif %}</summary>
+            {% if events %}
+            <ul class="order-saga-list">
+                {% for e in events %}
+                <li>
+                    <span class="order-saga-time">{{ e.created_at[:16].replace('T', ' ') }}</span>
+                    {% if e.field_name == '_created' %}
+                        <span class="order-saga-text">Pöntun stofnuð</span>
+                    {% elif e.field_name == '_comment' %}
+                        <span class="order-saga-text">Ummæli: {{ e.new_value }}</span>
+                    {% elif e.old_value %}
+                        <span class="order-saga-text">{{ event_labels.get(e.field_name, e.field_name) }}: {{ e.old_value }} → {{ e.new_value }}</span>
+                    {% else %}
+                        <span class="order-saga-text">{{ event_labels.get(e.field_name, e.field_name) }}: {{ e.new_value }}</span>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="order-saga-empty">Engar breytingar skráðar enn.</p>
+            {% endif %}
+        </details>
+
+        <div class="detail-attachments" data-order-id="{{ order.id }}">
+            <h3>Viðhengi</h3>
+            <div id="dropzone" class="dropzone" tabindex="0" role="button"
+                 aria-label="Bæta við viðhengi">
+                <p class="dropzone-text">
+                    Dragðu skjöl hingað eða <span class="dropzone-link">smelltu til að velja</span>
+                </p>
+                <p class="dropzone-hint">PDF, myndir, Office-skjöl, hámark 25 MB á skrá.</p>
+            </div>
+            <input id="att-file-input" type="file" multiple
+                   accept=".pdf,image/*,.docx,.xlsx,.pptx,.doc,.xls,.ppt,.txt,.csv"
+                   style="display:none;">
+            <ul id="att-list" class="att-list" aria-live="polite"></ul>
+            <ul id="att-progress" class="att-progress"></ul>
+            <p id="att-empty" class="att-empty" hidden>Engin viðhengi skráð.</p>
+            <p id="att-error" class="att-error" hidden></p>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var box = document.querySelector('.detail-attachments');
+    if (!box) { return; }
+    var orderId = box.dataset.orderId;
+    var listUrl = '/order/' + orderId + '/attachments';
+    var dropzone = document.getElementById('dropzone');
+    var fileInput = document.getElementById('att-file-input');
+    var listEl = document.getElementById('att-list');
+    var progressEl = document.getElementById('att-progress');
+    var emptyEl = document.getElementById('att-empty');
+    var errorEl = document.getElementById('att-error');
+    var MAX_BYTES = 25 * 1024 * 1024;
+
+    function fmtSize(bytes) {
+        if (bytes < 1024) { return bytes + ' B'; }
+        if (bytes < 1024 * 1024) { return (bytes / 1024).toFixed(1) + ' KB'; }
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB'; }
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, function (c) {
+            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]);
+        });
+    }
+
+    function thumbHtml(att) {
+        if (att.mime_type && att.mime_type.indexOf('image/') === 0) {
+            return '<img class="att-thumb" src="' + att.url + '" alt="">';
+        }
+        var icon = 'DOC';
+        if (att.mime_type === 'application/pdf') { icon = 'PDF'; }
+        else if (/sheet|excel|csv/.test(att.mime_type || '')) { icon = 'XLS'; }
+        else if (/presentation|powerpoint/.test(att.mime_type || '')) { icon = 'PPT'; }
+        else if (/wordprocessing|msword/.test(att.mime_type || '')) { icon = 'DOC'; }
+        else if ((att.mime_type || '').indexOf('text/') === 0) { icon = 'TXT'; }
+        return '<span class="att-thumb att-thumb-icon">' + icon + '</span>';
+    }
+
+    function renderItem(att) {
+        var li = document.createElement('li');
+        li.className = 'att-item';
+        li.dataset.id = att.id;
+        li.innerHTML =
+            thumbHtml(att) +
+            '<div class="att-meta">' +
+                '<a class="att-name" href="' + att.url + '" target="_blank" rel="noopener">' +
+                    escapeHtml(att.filename) + '</a>' +
+                '<div class="att-sub">' + fmtSize(att.size_bytes) + ' &middot; ' +
+                    escapeHtml(att.uploaded_at) + '</div>' +
+            '</div>' +
+            '<div class="att-actions">' +
+                '<a class="btn btn-sm btn-secondary" href="' + att.url + '?download=1">Sækja</a>' +
+                '<button type="button" class="btn btn-sm btn-danger att-delete">Eyða</button>' +
+            '</div>';
+        li.querySelector('.att-delete').addEventListener('click', function () {
+            if (!confirm('Eyða þessu viðhengi?')) { return; }
+            fetch(att.delete_url, {
+                method: 'POST',
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'fetch' },
+            }).then(function (r) {
+                if (!r.ok) { throw new Error('delete-failed'); }
+                li.remove();
+                refreshEmptyState();
+            }).catch(function () {
+                showError('Tókst ekki að eyða viðhengi.');
+            });
+        });
+        return li;
+    }
+
+    function refreshEmptyState() {
+        emptyEl.hidden = listEl.children.length > 0;
+    }
+
+    function showError(msg) {
+        errorEl.textContent = msg;
+        errorEl.hidden = false;
+        setTimeout(function () { errorEl.hidden = true; }, 6000);
+    }
+
+    function loadList() {
+        fetch(listUrl, { headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.ok ? r.json() : []; })
+            .then(function (rows) {
+                listEl.innerHTML = '';
+                rows.forEach(function (att) { listEl.appendChild(renderItem(att)); });
+                refreshEmptyState();
+            })
+            .catch(function () { /* leave empty */ });
+    }
+
+    function uploadOne(file) {
+        if (file.size > MAX_BYTES) {
+            showError('Skrá of stór: ' + escapeHtml(file.name) + ' (' + fmtSize(file.size) + ').');
+            return;
+        }
+        var li = document.createElement('li');
+        li.className = 'att-progress-item';
+        li.innerHTML =
+            '<div class="att-progress-name">' + escapeHtml(file.name) + '</div>' +
+            '<div class="att-progress-bar"><div class="att-progress-fill" style="width:0%"></div></div>';
+        progressEl.appendChild(li);
+        var fill = li.querySelector('.att-progress-fill');
+
+        var fd = new FormData();
+        fd.append('files', file);
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', listUrl);
+        xhr.setRequestHeader('Accept', 'application/json');
+        xhr.upload.onprogress = function (e) {
+            if (e.lengthComputable) {
+                fill.style.width = ((e.loaded / e.total) * 100).toFixed(0) + '%';
+            }
+        };
+        xhr.onload = function () {
+            li.remove();
+            var data = {};
+            try { data = JSON.parse(xhr.responseText || '{}'); } catch (e) {}
+            if (xhr.status >= 200 && xhr.status < 300 && data.saved) {
+                data.saved.forEach(function (att) {
+                    listEl.insertBefore(renderItem(att), listEl.firstChild);
+                });
+                refreshEmptyState();
+                if (data.rejected && data.rejected.length) {
+                    showError('Hafnað: ' + data.rejected.map(function (r) {
+                        return r.filename + ' (' + r.reason + ')';
+                    }).join(', '));
+                }
+            } else {
+                showError(data.error || ('Upphlaðning mistókst (' + xhr.status + ').'));
+            }
+        };
+        xhr.onerror = function () {
+            li.remove();
+            showError('Upphlaðning mistókst (nettenging).');
+        };
+        xhr.send(fd);
+    }
+
+    function uploadFiles(fileList) {
+        Array.prototype.forEach.call(fileList, uploadOne);
+    }
+
+    dropzone.addEventListener('click', function () { fileInput.click(); });
+    dropzone.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+    });
+    fileInput.addEventListener('change', function () {
+        if (fileInput.files && fileInput.files.length) {
+            uploadFiles(fileInput.files);
+            fileInput.value = '';
+        }
+    });
+
+    ['dragenter', 'dragover'].forEach(function (ev) {
+        dropzone.addEventListener(ev, function (e) {
+            e.preventDefault(); e.stopPropagation();
+            dropzone.classList.add('is-dragover');
+        });
+    });
+    ['dragleave', 'dragend', 'drop'].forEach(function (ev) {
+        dropzone.addEventListener(ev, function (e) {
+            e.preventDefault(); e.stopPropagation();
+            dropzone.classList.remove('is-dragover');
+        });
+    });
+    dropzone.addEventListener('drop', function (e) {
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+            uploadFiles(e.dataTransfer.files);
+        }
+    });
+    // Prevent the page from navigating when files are dropped outside the zone.
+    window.addEventListener('dragover', function (e) { e.preventDefault(); });
+    window.addEventListener('drop', function (e) { e.preventDefault(); });
+
+    loadList();
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="{{ url_for('static', filename='qr.js') }}"></script>
+<script>
+(function() {
+    var openBtn = document.getElementById('status-open-btn');
+    var modal = document.getElementById('status-modal');
+    if (!openBtn || !modal) { return; }
+
+    function closeModal() {
+        modal.hidden = true;
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('qr-modal-open');
+    }
+
+    function openModal() {
+        modal.hidden = false;
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('qr-modal-open');
+    }
+
+    openBtn.addEventListener('click', openModal);
+    modal.querySelectorAll('[data-status-close]').forEach(function (el) {
+        el.addEventListener('click', closeModal);
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !modal.hidden) { closeModal(); }
+    });
+})();
+</script>
+{% endblock %}

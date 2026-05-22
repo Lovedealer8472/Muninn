@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Tölfræði – Pantanakerfi{% endblock %}
+{% block body %}
+<div class="header">
+    <h1><a href="{{ url_for('board') }}" style="color:inherit;">Pantanakerfi</a></h1>
+    <div class="header-actions">
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('board') }}">Til baka</a>
+        <button class="theme-toggle" onclick="toggleTheme()" title="Ljóst/Dökkt"></button>
+    </div>
+</div>
+
+<div class="stats-wrap">
+    <h2 class="stats-title">Tölfræði</h2>
+    <p class="stats-sub">Yfirlit {{ today }}</p>
+
+    <div class="stats-grid">
+        <div class="stat-card stat-card-highlight">
+            <div class="stat-value">{{ total_open }}</div>
+            <div class="stat-label">Opnar pantanir</div>
+        </div>
+        <div class="stat-card {% if overdue > 0 %}stat-card-warn{% endif %}">
+            <div class="stat-value">{{ overdue }}</div>
+            <div class="stat-label">Seinkaðar (yfir ETA)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ completed_week }}</div>
+            <div class="stat-label">Lokið þessa viku</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ completed_month }}</div>
+            <div class="stat-label">Lokið þennan mánuð</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ avg_days_display }}</div>
+            <div class="stat-label">Meðaldagar (pantað → lokið)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ unpaid_active }}</div>
+            <div class="stat-label">Ógreitt (ekki lokið)</div>
+        </div>
+    </div>
+
+    <h3 class="stats-section">Eftir stöðu</h3>
+    <table class="stats-table">
+        <thead>
+            <tr><th>Staða</th><th>Fjöldi</th></tr>
+        </thead>
+        <tbody>
+            {% for status in statuses %}
+            <tr>
+                <td>{{ status }}</td>
+                <td><strong>{{ status_counts[status] }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

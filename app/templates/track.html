@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Staða pöntunar – Pantanakerfi{% endblock %}
+{% block body %}
+<div style="position:fixed;top:.6rem;right:1rem;z-index:99;">
+    <button class="theme-toggle" onclick="toggleTheme()" title="Ljóst/Dökkt"></button>
+</div>
+<div class="form-wrap" style="max-width: 560px; margin-top: 3rem;">
+    <div class="form-card">
+        <h1 style="margin-bottom: .75rem; text-align: center;">Staða pöntunar</h1>
+        <p style="text-align: center; margin-bottom: 1rem;">
+            {% include 'qr_modal.html' %}
+        </p>
+        <p style="color: var(--text-light); font-size: .88rem; margin-bottom: 1.25rem; text-align: center;">
+            Settu inn símanúmerið sem var skráð á pöntunina.
+        </p>
+
+        <form method="post">
+            <div class="form-group">
+                <label for="phone">Símanúmer</label>
+                <input type="tel" id="phone" name="phone" autocomplete="tel"
+                       placeholder="t.d. 6612345 eða +354 661 2345"
+                       value="{{ request.form.phone if request.method == 'POST' else '' }}"
+                       autofocus required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: .65rem;">Sækja stöðu</button>
+        </form>
+
+        {% if orders is not none and orders %}
+        <div style="margin-top: 1.75rem;">
+            <h2 style="font-size: 1rem; margin-bottom: .6rem;">Niðurstöður</h2>
+            <div style="overflow-x: auto;">
+                <table class="track-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Vara</th>
+                            <th>Staða</th>
+                            <th>Áætluð koma</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in orders %}
+                        <tr>
+                            <td>{{ o.id }}</td>
+                            <td>{{ o.product_name }}</td>
+                            <td><strong>{{ o.status }}</strong></td>
+                            <td>{{ o.estimated_arrival or '–' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p style="font-size: .78rem; color: var(--text-light); margin-top: .75rem;">
+                Greiðslustaða og sértækar upplýsingar birtast í tölvupósti eða í samskiptum við okkur.
+            </p>
+        </div>
+        {% endif %}
+
+        <div style="margin-top: 1.5rem; text-align: center; font-size: .85rem;">
+            <a href="{{ url_for('login') }}">Innskráning starfsmanna</a>
+        </div>
+    </div>
+</div>
+<style>
+.track-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.track-table th, .track-table td {
+    text-align: left; padding: .45rem .5rem; border-bottom: 1px solid var(--border);
+}
+.track-table th { color: var(--text-light); font-weight: 600; font-size: .72rem; text-transform: uppercase; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="{{ url_for('static', filename='qr.js') }}"></script>
+{% endblock %}

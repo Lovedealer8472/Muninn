@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Muninn{% endblock %}
+{% block body %}
+<div class="header">
+    <div class="brand-wrap">
+        <a href="{{ url_for('board') }}" class="brand-link">
+            <img src="{{ url_for('static', filename='muninn_logo_transparent.png') }}" class="brand-raven" alt="Muninn" onclick="cawCaw(event)">
+            <span class="brand-text">Muninn</span>
+        </a>
+    </div>
+    <div class="header-actions">
+        <form method="get" action="{{ url_for('board') }}" class="board-search-form">
+            <input class="search-input" type="search" name="q" value="{{ query }}"
+                   placeholder="Leita: nafn, sími eða vara…" autocomplete="off">
+            <button class="btn btn-secondary btn-sm" type="submit">Leita</button>
+            {% if query %}
+                <a class="btn btn-secondary btn-sm" href="{{ url_for('board') }}">Hreinsa</a>
+            {% endif %}
+        </form>
+        <a class="header-trash-link btn btn-secondary btn-sm" href="{{ url_for('trash') }}" title="Rusl{% if trash_count %} ({{ trash_count }}){% endif %}">
+            <svg class="header-trash-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+                <path fill="currentColor" d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm3 0h2v9h-2V9zM6 9h2v9H6V9zm10 11H8v2h8v-2z"/>
+            </svg>
+            {% if trash_count %}<span class="header-trash-badge">{{ trash_count }}</span>{% endif %}
+        </a>
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('stats') }}">Tölfræði</a>
+        <a class="btn btn-primary" href="{{ url_for('order_new') }}">+ Ný pöntun</a>
+        <span id="board-refresh-hint" class="board-refresh-hint" title="Sjálfvirk endurnýjun"></span>
+        <button class="theme-toggle" onclick="toggleTheme()" title="Ljóst/Dökkt"></button>
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('logout') }}">Útskrá</a>
+    </div>
+</div>
+
+<details class="board-legend">
+    <summary>Hvað þýða stöðurnar?</summary>
+    <ul class="board-legend-list">
+        {% for s in statuses %}
+        <li><strong>{{ s }}</strong> — {{ status_help.get(s, '') }}</li>
+        {% endfor %}
+    </ul>
+</details>
+
+<div class="board">
+    {% for status in statuses %}
+    <div class="column">
+        <div class="column-header" title="{{ status_help.get(status, '') }}">
+            <span>{{ status }}</span>
+            <span class="count">{{ columns[status]|length }}</span>
+        </div>
+        <div class="column-cards">
+            {% for order in columns[status] %}
+            <div class="card
+                {%- if order.is_pickup %} card-pickup
+                {%- elif order.priority == 'Brýnt' %} priority-brýnt
+                {%- elif order.priority == 'Mikilvægt' %} priority-mikilvægt
+                {%- elif order.idle_days >= 7 %} card-stale{% endif %}"
+                 onclick="window.location='{{ url_for('order_detail', order_id=order.id) }}'"
+            >
+                <div class="card-customer">{{ order.customer_name }}</div>
+                <div class="card-product">{{ order.product_name }}{% if order.product_model %} – {{ order.product_model }}{% endif %}</div>
+                <div class="card-meta">
+                    {% if order.is_pickup %}
+                        <span class="badge badge-pickup">Til afhendingar</span>
+                    {% endif %}
+                    {% if order.phone %}
+                        <span class="badge badge-phone">{{ order.phone }}</span>
+                    {% endif %}
+                    {% if order.contact_short %}
+                        <span class="badge badge-contact" title="{{ order.contact_status }}">{{ order.contact_short }}</span>
+                    {% endif %}
+                    {% if order.is_overdue %}
+                        <span class="badge badge-overdue" title="Yfir áætlun">Seinkað{% if order.estimated_arrival %} · {{ order.estimated_arrival }}{% endif %}</span>
+                    {% elif order.estimated_arrival %}
+                        <span class="badge badge-eta">ETA: {{ order.estimated_arrival }}</span>
+                    {% endif %}
+                    {% if order.idle_days >= 1 %}
+                        <span class="badge badge-idle" title="Síðast uppfært">{{ order.idle_days }}d</span>
+                    {% endif %}
+                    <span class="badge badge-payment-{{ order.payment_status|lower }}">{{ order.payment_status }}</span>
+                </div>
+                <form class="card-status-form" method="post"
+                      action="{{ url_for('order_status', order_id=order.id) }}"
+                      onclick="event.stopPropagation();">
+                    <select name="status" onchange="this.form.submit()" aria-label="Breyta stöðu">
+                        {% for s in statuses %}
+                            <option value="{{ s }}" {% if s == order.status %}selected{% endif %}>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+(function () {
+    var initialVersion = {{ board_version|tojson }};
+    var query = {{ query|tojson }};
+    var lastVersion = initialVersion;
+    var hint = document.getElementById('board-refresh-hint');
+
+    function poll() {
+        if (document.hidden) { return; }
+        var url = '{{ url_for("board_version_api") }}?q=' + encodeURIComponent(query || '');
+        fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+                if (!data || !data.version) { return; }
+                if (lastVersion && data.version !== lastVersion) {
+                    window.location.reload();
+                }
+                lastVersion = data.version;
+                if (hint) {
+                    hint.textContent = '\u21bb';
+                    hint.title = 'Síðast athugað: ' + new Date().toLocaleTimeString('is-IS');
+                }
+            })
+            .catch(function () { /* ignore */ });
+    }
+
+    setInterval(poll, 45000);
+    if (hint) {
+        hint.textContent = '\u21bb';
+        hint.title = 'Endurnýjar sjálfkrafa á ~45 sek. fresti';
+    }
+})();
+</script>
+{% endblock %}
