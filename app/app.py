@@ -23,6 +23,7 @@ from flask import (
     session,
     url_for,
 )
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
@@ -30,6 +31,9 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-change-me")
+
+if os.environ.get("BEHIND_PROXY", "1").lower() in ("1", "true", "yes", "on"):
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 DATABASE = os.path.join(app.root_path, "pantanakerfi.db")
 
