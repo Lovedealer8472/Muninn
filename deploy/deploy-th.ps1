@@ -7,6 +7,7 @@ $App = Join-Path $Root "app"
 
 Write-Host "Deploying to ${RemoteHost}:${Remote} ..."
 scp "$App/app.py" "${RemoteHost}:${Remote}/app.py"
+scp "$App/customer_email.py" "${RemoteHost}:${Remote}/customer_email.py"
 scp -r "$App/templates" "${RemoteHost}:${Remote}/"
 scp -r "$App/static" "${RemoteHost}:${Remote}/"
 if (Test-Path "$App/requirements.txt") {

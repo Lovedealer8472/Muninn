@@ -8,8 +8,9 @@ import smtplib
 from email.message import EmailMessage
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Optional
+from typing import Any, Optional
 
+from customer_email import build_customer_notification
 from dotenv import load_dotenv
 from flask import (
     Flask,
@@ -638,14 +639,16 @@ def _smtp_config():
     }
 
 
-def _send_email(to_email, subject, body):
+def _send_email(to_email, subject, text_body, html_body=None):
     cfg = _smtp_config()
     if not cfg["server"] or not cfg["user"] or not cfg["password"] or not to_email:
         return False
     msg = EmailMessage()
-    msg.set_content(body)
+    msg.set_content(text_body)
+    if html_body:
+        msg.add_alternative(html_body, subtype="html")
     msg["Subject"] = subject
-    msg["From"] = cfg["from"]
+    msg["From"] = f"{cfg['shop_name']} <{cfg['from']}>"
     msg["To"] = to_email
     try:
         server = smtplib.SMTP(cfg["server"], cfg["port"])
@@ -669,56 +672,14 @@ def _customer_track_url() -> str:
 
 
 def _build_notification_message(order):
-    """Return (to_email, subject, body) or None if no send possible."""
-    status = order["status"]
-    if status not in CUSTOMER_EMAIL_STATUSES:
-        return None
-    to_email = (order["email"] or "").strip()
-    if not to_email:
+    """Return (to_email, subject, text_body, html_body) or None."""
+    if order["status"] not in CUSTOMER_EMAIL_STATUSES:
         return None
     cfg = _smtp_config()
     if not cfg["server"] or not cfg["user"] or not cfg["password"]:
         return None
-
-    shop_name = cfg["shop_name"]
-    footer = f"---\nKeyrt af Muninn · https://muninn.tolvuhvislarinn.is"
-
-    if status == "Staðfest":
-        eta = order["estimated_arrival"] or ""
-        eta_line = f"Áætluð koma: {eta}\n\n" if eta else ""
-        body = (
-            f"Sæl(l) {order['customer_name']},\n\n"
-            f"Pöntun þín (#{order['id']} – {order['product_name']}) hefur verið "
-            f"staðfest hjá birgi og er á leiðinni.\n\n"
-            f"{eta_line}"
-            f"Við látum þig vita þegar varan mætir.\n\n"
-            f"Kveðja,\n{shop_name}\n\n"
-            f"{footer}"
-        )
-        subject = f"Pöntun #{order['id']} staðfest – {shop_name}"
-    elif status == "Komið":
-        body = (
-            f"Sæl(l) {order['customer_name']},\n\n"
-            f"Varan þín er komin! "
-            f"{order['product_name']} (pöntun #{order['id']}) "
-            f"bíður þín hjá okkur.\n\n"
-            f"Kveðja,\n{shop_name}\n\n"
-            f"{footer}"
-        )
-        subject = f"Varan þín er komin – {shop_name}"
-    else:
-        track_url = _customer_track_url()
-        body = (
-            f"Sæl(l) {order['customer_name']},\n\n"
-            f"Staða pöntunar þinnar (#{order['id']} – {order['product_name']}) "
-            f"hefur verið uppfærð í: {status}.\n\n"
-            f"Þú getur skoðað stöðu með símanúmerinu þínu hér: {track_url}\n\n"
-            f"Kveðja,\n{shop_name}\n\n"
-            f"{footer}"
-        )
-        subject = f"Uppfærsla á pöntun #{order['id']} – {shop_name}"
-
-    return to_email, subject, body
+    track_url = _customer_track_url() if order["status"] not in ("Staðfest", "Komið") else None
+    return build_customer_notification(order, track_url=track_url)
 
 
 def _preview_email_result(order) -> str:
@@ -742,8 +703,12 @@ def _queue_customer_email(order_id: int, order: dict) -> None:
                 if not built:
                     result = "skipped"
                 else:
-                    to_email, subject, body = built
-                    result = "sent" if _send_email(to_email, subject, body) else "failed"
+                    to_email, subject, text_body, html_body = built
+                    result = (
+                        "sent"
+                        if _send_email(to_email, subject, text_body, html_body)
+                        else "failed"
+                    )
             except Exception as e:
                 print(f"Background email error: {e}")
                 result = "failed"
@@ -790,14 +755,8 @@ def send_notification_email(order, *, background=False) -> str:
     built = _build_notification_message(order)
     if not built:
         return "skipped"
-    to_email, subject, body = built
-
-    if background:
-        order_id = order["id"]
-        _queue_customer_email(order_id, dict(order))
-        return "pending"
-
-    return "sent" if _send_email(to_email, subject, body) else "failed"
+    to_email, subject, text_body, html_body = built
+    return "sent" if _send_email(to_email, subject, text_body, html_body) else "failed"
 
 
 def _flash_email_result(result: str) -> None:
