@@ -59,6 +59,13 @@ CONTACT_OPTIONS = [
 PRIORITY_OPTIONS = ["Venjulegt", "Mikilvægt", "Brýnt"]
 TRASH_RETENTION_DAYS = 30
 
+ROLE_STJORI = "stjori"
+ROLE_NOTANDI = "notandi"
+ROLE_LABELS = {
+    ROLE_STJORI: "Stjóri",
+    ROLE_NOTANDI: "Notandi",
+}
+
 STATUS_HELP = {
     "Móttekið": "Ný beiðni móttekin.",
     "Í vinnslu": "Verið er að vinna málið innanhúss.",
@@ -457,6 +464,30 @@ def login_required(f):
     return decorated
 
 
+def stjori_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+        if session.get("role") != ROLE_STJORI:
+            flash("Aðeins Stjóri hefur aðgang að þessu.", "error")
+            return redirect(url_for("board"))
+        return f(*args, **kwargs)
+
+    return decorated
+
+
+@app.context_processor
+def inject_role():
+    role = session.get("role")
+    return {
+        "role": role,
+        "is_stjori": role == ROLE_STJORI,
+        "is_notandi": role == ROLE_NOTANDI,
+        "role_label": ROLE_LABELS.get(role, ""),
+    }
+
+
 def _digits_only(s):
     return "".join(c for c in (s or "") if c.isdigit())
 
@@ -559,8 +590,13 @@ def send_notification_email(to_email, order):
 def login():
     if request.method == "POST":
         password = request.form.get("password", "")
+        role = request.form.get("role", ROLE_NOTANDI)
+        if role not in (ROLE_STJORI, ROLE_NOTANDI):
+            role = ROLE_NOTANDI
         if check_password_hash(ADMIN_PASSWORD_HASH, password):
             session["logged_in"] = True
+            session["role"] = role
+            session["user"] = ROLE_LABELS[role]
             return redirect(url_for("board"))
         flash("Rangt lykilorð.", "error")
     return render_template("login.html")
@@ -652,6 +688,7 @@ def board_version_api():
 
 @app.route("/stats")
 @login_required
+@stjori_required
 def stats():
     db = get_db()
     today = datetime.now().strftime("%Y-%m-%d")
@@ -969,6 +1006,7 @@ def order_edit(order_id):
 
 @app.route("/order/<int:order_id>/delete", methods=["POST"])
 @login_required
+@stjori_required
 def order_delete(order_id):
     db = get_db()
     order = _get_order(db, order_id)
@@ -987,6 +1025,7 @@ def order_delete(order_id):
 
 @app.route("/trash")
 @login_required
+@stjori_required
 def trash():
     db = get_db()
     rows = db.execute(
@@ -1005,6 +1044,7 @@ def trash():
 
 @app.route("/order/<int:order_id>/restore", methods=["POST"])
 @login_required
+@stjori_required
 def order_restore(order_id):
     db = get_db()
     order = db.execute(
@@ -1026,6 +1066,7 @@ def order_restore(order_id):
 
 @app.route("/order/<int:order_id>/purge", methods=["POST"])
 @login_required
+@stjori_required
 def order_purge(order_id):
     db = get_db()
     order = db.execute(
@@ -1053,6 +1094,17 @@ def order_status(order_id):
     order = _get_order(db, order_id)
     if order is None:
         abort(404)
+
+    if session.get("role") == ROLE_NOTANDI:
+        status_idx = (
+            STATUSES.index(order["status"]) if order["status"] in STATUSES else 0
+        )
+        next_status = (
+            STATUSES[status_idx + 1] if status_idx < len(STATUSES) - 1 else None
+        )
+        if new_status != next_status:
+            flash("Notandi getur aðeins fært pöntun áfram um eitt skref.", "error")
+            return redirect(url_for("order_detail", order_id=order_id))
 
     now = datetime.now().isoformat(timespec="seconds")
     extra_updates = ""

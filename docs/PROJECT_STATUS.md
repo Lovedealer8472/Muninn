@@ -25,7 +25,8 @@ Muninn is a lightweight **special-order / repair tracking** tool: kanban board, 
 | Email send in background thread (no UI freeze) | Live |
 | Soft delete + Rusl (30-day retention) | Live |
 | Trash icon in header | Live |
-| **Tier 1 board UX** (2026-05-22) | Live in repo; deploy TH |
+| **Tier 1 board UX** (2026-05-22) | Live on TH |
+| **Stjóri / Notandi roles** (2026-05-22) | Live on TH — shared password, role at login |
 
 ### Tier 1 (clerk / owner feedback)
 
@@ -42,6 +43,19 @@ Muninn is a lightweight **special-order / repair tracking** tool: kanban board, 
 - **Service:** `pantanir-tolvuhvisl.service` (port 5001)  
 - **DB:** `app/pantanakerfi.db` (SQLite, WAL)  
 - **SMTP:** Migadu via `.env` on server  
+
+## Roles (Stjóri / Notandi)
+
+| | **Notandi** | **Stjóri** |
+|---|-------------|------------|
+| Board, search, new order | Yes | Yes |
+| Færa áfram (+ email modal) | Yes (next step only) | Yes |
+| Breyta, Ummæli, QR, Prenta | Yes | Yes |
+| Status dropdown on cards | No | Yes |
+| Eyða / Rusl | No | Yes |
+| Tölfræði | No | Yes |
+
+One shop password for both; pick role on login. Per-user accounts → backlog.
 
 ## User research summary
 

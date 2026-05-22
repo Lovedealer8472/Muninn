@@ -74,6 +74,61 @@ a:hover { text-decoration: underline; }
     background: var(--primary); color: #fff; font-size: 1rem; cursor: pointer;
 }
 .login-box button:hover { background: var(--primary-hover); }
+.login-form { text-align: left; }
+.login-role-fieldset {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: .65rem .75rem;
+    margin: 0 0 1rem;
+}
+.login-role-legend {
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--text-light);
+    padding: 0 .25rem;
+}
+.login-role-option {
+    display: flex;
+    align-items: flex-start;
+    gap: .5rem;
+    margin-top: .45rem;
+    font-size: .85rem;
+    cursor: pointer;
+}
+.login-role-option input { margin-top: .2rem; width: auto; }
+.login-password-label {
+    display: block;
+    font-size: .82rem;
+    font-weight: 600;
+    margin-bottom: .25rem;
+}
+.login-submit { width: 100%; margin-top: .25rem; }
+.login-track-link {
+    margin-top: 1.25rem;
+    font-size: .85rem;
+    text-align: center;
+}
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: .2rem .55rem;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+}
+.role-badge-stjori {
+    background: #deebff;
+    color: #0747a6;
+}
+.role-badge-notandi {
+    background: #e3fcef;
+    color: #006644;
+}
+[data-theme="dark"] .role-badge-stjori { background: #0e2a52; color: #85b8ff; }
+[data-theme="dark"] .role-badge-notandi { background: #0e3b26; color: #57d9a3; }
+.header-actions--detail { margin-left: auto; }
 
 /* ── Header ──────────────────────────────────────────────────── */
 .header {

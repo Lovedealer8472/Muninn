@@ -8,7 +8,12 @@
             <span class="brand-text">Muninn</span>
         </a>
     </div>
-    <button class="theme-toggle" onclick="toggleTheme()" title="Ljóst/Dökkt"></button>
+    <div class="header-actions header-actions--detail">
+        {% if role_label %}
+        <span class="role-badge role-badge-{{ role }}" title="Innskráður sem {{ role_label }}">{{ role_label }}</span>
+        {% endif %}
+        <button class="theme-toggle" onclick="toggleTheme()" title="Ljóst/Dökkt"></button>
+    </div>
 </div>
 <div class="detail-wrap">
     <div class="detail-card">
@@ -59,10 +64,12 @@
                 </div>
                 {% endif %}
 
+                {% if is_stjori %}
                 <form class="detail-action-form" method="post" action="{{ url_for('order_delete', order_id=order.id) }}"
                       onsubmit="return confirm('Færa pöntun í rusl? Hægt að endurheimta innan 30 daga.');">
                     <button type="submit" class="btn btn-danger" title="Færa í rusl">Eyða</button>
                 </form>
+                {% endif %}
 
                 <a class="btn btn-secondary" href="{{ url_for('board') }}">Til baka</a>
             </div>

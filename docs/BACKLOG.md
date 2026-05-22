@@ -26,5 +26,9 @@ Ordered by **impact × ease** (see conversation 2026-05-22).
 
 - Daily digest email  
 - SMS  
-- Role-based clerk UI  
 - Attention dashboard strip  
+
+## Later (auth)
+
+- [ ] **Separate logins per person** (SQLite `users`, username + password + role) — shared shop password for now  
+- [ ] Optional: force role from password (two env hashes) instead of radio at login  

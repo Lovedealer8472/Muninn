@@ -9,6 +9,9 @@
         </a>
     </div>
     <div class="header-actions">
+        {% if role_label %}
+        <span class="role-badge role-badge-{{ role }}" title="Innskráður sem {{ role_label }}">{{ role_label }}</span>
+        {% endif %}
         <form method="get" action="{{ url_for('board') }}" class="board-search-form">
             <input class="search-input" type="search" name="q" value="{{ query }}"
                    placeholder="Leita: nafn, sími eða vara…" autocomplete="off">
@@ -17,6 +20,7 @@
                 <a class="btn btn-secondary btn-sm" href="{{ url_for('board') }}">Hreinsa</a>
             {% endif %}
         </form>
+        {% if is_stjori %}
         <a class="header-trash-link btn btn-secondary btn-sm" href="{{ url_for('trash') }}" title="Rusl{% if trash_count %} ({{ trash_count }}){% endif %}">
             <svg class="header-trash-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
                 <path fill="currentColor" d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm3 0h2v9h-2V9zM6 9h2v9H6V9zm10 11H8v2h8v-2z"/>
@@ -24,6 +28,7 @@
             {% if trash_count %}<span class="header-trash-badge">{{ trash_count }}</span>{% endif %}
         </a>
         <a class="btn btn-secondary btn-sm" href="{{ url_for('stats') }}">Tölfræði</a>
+        {% endif %}
         <a class="btn btn-primary" href="{{ url_for('order_new') }}">+ Ný pöntun</a>
         <span id="board-refresh-hint" class="board-refresh-hint" title="Sjálfvirk endurnýjun"></span>
         <button class="theme-toggle" onclick="toggleTheme()" title="Ljóst/Dökkt"></button>
@@ -78,6 +83,7 @@
                     {% endif %}
                     <span class="badge badge-payment-{{ order.payment_status|lower }}">{{ order.payment_status }}</span>
                 </div>
+                {% if is_stjori %}
                 <form class="card-status-form" method="post"
                       action="{{ url_for('order_status', order_id=order.id) }}"
                       onclick="event.stopPropagation();">
@@ -87,6 +93,7 @@
                         {% endfor %}
                     </select>
                 </form>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
