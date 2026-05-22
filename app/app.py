@@ -648,8 +648,8 @@ def pwa_manifest():
                 "scope": "/",
                 "display": "standalone",
                 "orientation": "any",
-                "background_color": "#1e1e1e",
-                "theme_color": "#d35400",
+                "background_color": "#000000",
+                "theme_color": "#000000",
                 "icons": icons,
             }
         ),

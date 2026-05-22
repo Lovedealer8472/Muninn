@@ -1,5 +1,5 @@
 /* Muninn PWA — caches static assets only; HTML/API always use network. */
-var CACHE = 'muninn-static-v1';
+var CACHE = 'muninn-static-v2';
 
 self.addEventListener('install', function (event) {
     self.skipWaiting();

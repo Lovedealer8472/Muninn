@@ -45,7 +45,7 @@ No code deploy needed to turn it off.
 |------|------|
 | `app/static/sw.js` | Service worker (static cache only) |
 | `app/static/pwa.js` | Register SW + install banner |
-| `app/static/pwa-icon-*.png` | Manifest icons |
+| `app/static/pwa-icon-*.png` | Manifest icons (black + backlit raven) |
 | `app/app.py` | `PWA_ENABLED`, `/manifest.webmanifest`, `/sw.js` |
 | `scripts/generate_pwa_icons.py` | Regenerate icons from logo |
 
