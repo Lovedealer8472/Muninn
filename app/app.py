@@ -84,10 +84,21 @@ def _password_hash_for_role(role: str) -> str:
     return os.environ.get("NOTANDI_PASSWORD_HASH") or _NOTANDI_DEFAULT_HASH
 
 
-def _should_notify_customer(new_status: str, send_notification_checked: bool) -> bool:
+def _should_notify_customer(
+    order, new_status: str, send_notification_checked: bool
+) -> bool:
     if new_status not in CUSTOMER_EMAIL_STATUSES:
         return False
+    suppressed = bool(order["suppress_auto_email"]) if "suppress_auto_email" in order.keys() else False
+    if suppressed:
+        return send_notification_checked
     return send_notification_checked or new_status in CUSTOMER_EMAIL_STATUSES
+
+
+def _clear_email_suppress(db, order_id: int) -> None:
+    db.execute(
+        "UPDATE orders SET suppress_auto_email = 0 WHERE id = ?", (order_id,)
+    )
 
 
 STATUS_HELP = {
@@ -240,6 +251,10 @@ def _ensure_schema(conn):
     cols = [r[1] for r in conn.execute("PRAGMA table_info(orders)").fetchall()]
     if "deleted_at" not in cols:
         conn.execute("ALTER TABLE orders ADD COLUMN deleted_at TEXT")
+    if "suppress_auto_email" not in cols:
+        conn.execute(
+            "ALTER TABLE orders ADD COLUMN suppress_auto_email INTEGER NOT NULL DEFAULT 0"
+        )
     conn.commit()
 
 
@@ -1165,13 +1180,16 @@ def order_edit(order_id):
         send_notification = request.form.get("send_notification") == "1"
         new_status = request.form.get("status", order["status"])
         if (
-            _should_notify_customer(new_status, send_notification)
+            _should_notify_customer(order, new_status, send_notification)
             and order["status"] != new_status
         ):
             updated_order = db.execute(
                 "SELECT * FROM orders WHERE id = ?", (order_id,)
             ).fetchone()
             result = send_notification_email(updated_order)
+            if result == "sent":
+                _clear_email_suppress(db, order_id)
+                db.commit()
             flash("Pöntun uppfærð.", "success")
             _flash_email_result(result)
             return redirect(url_for("board"))
@@ -1245,7 +1263,7 @@ def order_restore(order_id):
         abort(404)
     now = datetime.now().isoformat(timespec="seconds")
     db.execute(
-        "UPDATE orders SET deleted_at = NULL, updated_at = ? WHERE id = ?",
+        "UPDATE orders SET deleted_at = NULL, updated_at = ?, suppress_auto_email = 1 WHERE id = ?",
         (now, order_id),
     )
     log_order_event(db, order_id, "_restored", "Í rusl", "Endurheimt")
@@ -1313,11 +1331,20 @@ def order_status(order_id):
     )
     db.commit()
 
-    if _should_notify_customer(new_status, request.form.get("send_notification") == "1") and order["status"] != new_status:
+    if (
+        _should_notify_customer(
+            order, new_status, request.form.get("send_notification") == "1"
+        )
+        and order["status"] != new_status
+    ):
         updated_order = db.execute(
             "SELECT * FROM orders WHERE id = ?", (order_id,)
         ).fetchone()
-        session[f"email_notice_{order_id}"] = send_notification_email(updated_order)
+        result = send_notification_email(updated_order)
+        if result == "sent":
+            _clear_email_suppress(db, order_id)
+            db.commit()
+        session[f"email_notice_{order_id}"] = result
     flash("Staða uppfærð.", "success")
 
     return redirect(url_for("order_detail", order_id=order_id))

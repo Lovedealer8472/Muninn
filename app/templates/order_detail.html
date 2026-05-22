@@ -56,9 +56,13 @@
                             <input type="hidden" name="status" value="{{ statuses[status_idx + 1] }}">
                             {% if statuses[status_idx + 1] in ['Staðfest', 'Komið'] %}
                             <div class="form-group form-group--check" style="margin-bottom: 1.5rem; justify-content: flex-start;">
-                                <input type="checkbox" id="send_notification_modal" name="send_notification" value="1" checked>
+                                <input type="checkbox" id="send_notification_modal" name="send_notification" value="1"
+                                       {% if not order.suppress_auto_email %}checked{% endif %}>
                                 <label for="send_notification_modal">Senda tilkynningu í tölvupósti til viðskiptavinar</label>
                             </div>
+                            {% if order.suppress_auto_email %}
+                            <p class="qr-modal-hint" style="margin-top: -.75rem; margin-bottom: 1rem;">Pöntun var endurheimt úr rusli — póstur sendist ekki nema þú hakarí við.</p>
+                            {% endif %}
                             {% elif statuses[status_idx + 1] != 'Lokið' %}
                             <div class="form-group form-group--check" style="margin-bottom: 1.5rem; justify-content: flex-start;">
                                 <input type="checkbox" id="send_notification_modal" name="send_notification" value="1">
