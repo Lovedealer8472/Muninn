@@ -34,7 +34,7 @@ Muninn is a lightweight **special-order / repair tracking** tool: kanban board, 
 2. Contact status on cards  
 3. Komið highlighted (“Til afhendingar”)  
 4. Search placeholder + phone-digit search  
-5. Collapsible status legend on board  
+5. Status legend info modal (header **Stöður** button)  
 6. Lokið clarified as “(afhent)” on detail pipeline  
 7. After status change from board dropdown → return to **order detail** (modal path already on detail)
 

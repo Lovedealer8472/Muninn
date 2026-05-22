@@ -1,0 +1,20 @@
+<button type="button" class="btn btn-secondary btn-sm" id="status-legend-open-btn"
+        title="Hvað þýða stöðurnar?">
+    Stöður
+</button>
+
+<div id="status-legend-modal" class="qr-modal" hidden aria-hidden="true">
+    <div class="qr-modal-backdrop" data-status-legend-close></div>
+    <div class="qr-modal-panel status-legend-panel" role="dialog" aria-labelledby="status-legend-modal-title">
+        <h3 id="status-legend-modal-title">Hvað þýða stöðurnar?</h3>
+        <p class="qr-modal-hint">Stutta skýring á hverju stigi í ferlinu.</p>
+        <ul class="status-legend-list">
+            {% for s in statuses %}
+            <li><strong>{{ s }}</strong> — {{ status_help.get(s, '') }}</li>
+            {% endfor %}
+        </ul>
+        <div class="qr-modal-actions">
+            <button type="button" class="btn btn-secondary btn-sm" data-status-legend-close>Loka</button>
+        </div>
+    </div>
+</div>

@@ -29,21 +29,13 @@
         </a>
         <a class="btn btn-secondary btn-sm" href="{{ url_for('stats') }}">Tölfræði</a>
         {% endif %}
+        {% include 'status_legend_modal.html' %}
         <a class="btn btn-primary" href="{{ url_for('order_new') }}">+ Ný pöntun</a>
         <span id="board-refresh-hint" class="board-refresh-hint" title="Sjálfvirk endurnýjun"></span>
         <button class="theme-toggle" onclick="toggleTheme()" title="Ljóst/Dökkt"></button>
         <a class="btn btn-secondary btn-sm" href="{{ url_for('logout') }}">Útskrá</a>
     </div>
 </div>
-
-<details class="board-legend">
-    <summary>Hvað þýða stöðurnar?</summary>
-    <ul class="board-legend-list">
-        {% for s in statuses %}
-        <li><strong>{{ s }}</strong> — {{ status_help.get(s, '') }}</li>
-        {% endfor %}
-    </ul>
-</details>
 
 <div class="board">
     {% for status in statuses %}
@@ -134,4 +126,5 @@
     }
 })();
 </script>
+<script src="{{ url_for('static', filename='status_legend.js') }}"></script>
 {% endblock %}

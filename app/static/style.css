@@ -380,24 +380,22 @@ a:hover { text-decoration: underline; }
 .badge-idle              { background: #f4f5f7; color: var(--text-light); text-transform: none; }
 .badge-pickup            { background: var(--primary); color: #fff; }
 
-.board-legend {
-    max-width: 1200px;
-    margin: 0 auto .65rem;
-    padding: 0 1rem;
-    font-size: .82rem;
-}
-.board-legend summary {
-    cursor: pointer;
-    color: var(--text-light);
-    user-select: none;
-}
-.board-legend-list {
-    margin: .4rem 0 0;
-    padding-left: 1.2rem;
-    color: var(--text-light);
-}
-.board-legend-list li { margin-bottom: .2rem; }
 .board-search-form { display: flex; gap: .35rem; align-items: center; }
+
+.status-legend-panel { max-width: 420px; text-align: left; }
+.status-legend-list {
+    list-style: none;
+    margin: 0 0 1rem;
+    padding: 0;
+    font-size: .88rem;
+    color: var(--text);
+}
+.status-legend-list li {
+    margin-bottom: .55rem;
+    line-height: 1.4;
+}
+.status-legend-list li:last-child { margin-bottom: 0; }
+.status-legend-list strong { color: var(--primary); }
 
 [data-theme="dark"] .badge-contact { background: #2c2a4a; color: #b8acf6; }
 [data-theme="dark"] .badge-pickup  { background: var(--primary); color: #fff; }

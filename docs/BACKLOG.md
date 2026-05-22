@@ -9,7 +9,7 @@ Ordered by **impact × ease** (see conversation 2026-05-22).
 - [x] Contact status badge on cards  
 - [x] Komið card highlight + “Til afhendingar”  
 - [x] Search hint + phone-digit matching  
-- [x] Status legend on board  
+- [x] Status legend info modal (board header)  
 - [x] Lokið = afhent hint on detail  
 - [x] Status change redirect → order detail  
 
