@@ -54,10 +54,19 @@
                         
                         <form method="post" action="{{ url_for('order_status', order_id=order.id) }}">
                             <input type="hidden" name="status" value="{{ statuses[status_idx + 1] }}">
+                            {% if statuses[status_idx + 1] in ['Staðfest', 'Komið'] %}
                             <div class="form-group form-group--check" style="margin-bottom: 1.5rem; justify-content: flex-start;">
                                 <input type="checkbox" id="send_notification_modal" name="send_notification" value="1" checked>
                                 <label for="send_notification_modal">Senda tilkynningu í tölvupósti til viðskiptavinar</label>
                             </div>
+                            {% elif statuses[status_idx + 1] != 'Lokið' %}
+                            <div class="form-group form-group--check" style="margin-bottom: 1.5rem; justify-content: flex-start;">
+                                <input type="checkbox" id="send_notification_modal" name="send_notification" value="1">
+                                <label for="send_notification_modal">Senda tilkynningu í tölvupósti til viðskiptavinar</label>
+                            </div>
+                            {% else %}
+                            <p class="qr-modal-hint" style="margin-bottom: 1rem;">Enginn póstur sendur við afhendingu (Lokið).</p>
+                            {% endif %}
                             <div class="qr-modal-actions" style="gap: .5rem; justify-content: flex-start;">
                                 <button type="submit" class="btn btn-primary">Færa áfram</button>
                                 <button type="button" class="btn btn-secondary" data-status-close>Hætta við</button>

@@ -69,6 +69,9 @@ ROLE_LABELS = {
     ROLE_NOTANDI: "Notandi",
 }
 
+# Customer emails only for these statuses (never on Lokið — pickup already notified at Komið).
+CUSTOMER_EMAIL_STATUSES = frozenset({"Staðfest", "Komið"})
+
 
 def _password_hash_for_role(role: str) -> str:
     """Stjóri: admin. Notandi: user. Override via STJORI/NOTANDI_PASSWORD_HASH in .env."""
@@ -79,6 +82,13 @@ def _password_hash_for_role(role: str) -> str:
             or _STJORI_DEFAULT_HASH
         )
     return os.environ.get("NOTANDI_PASSWORD_HASH") or _NOTANDI_DEFAULT_HASH
+
+
+def _should_notify_customer(new_status: str, send_notification_checked: bool) -> bool:
+    if new_status not in CUSTOMER_EMAIL_STATUSES:
+        return False
+    return send_notification_checked or new_status in CUSTOMER_EMAIL_STATUSES
+
 
 STATUS_HELP = {
     "Móttekið": "Ný beiðni móttekin.",
@@ -605,6 +615,9 @@ def _send_email(to_email, subject, body):
 
 def send_notification_email(order, *, background=False) -> str:
     """Send status email. Returns: skipped | no_email | no_smtp | sent | failed | queued."""
+    status = order["status"]
+    if status not in CUSTOMER_EMAIL_STATUSES:
+        return "skipped"
     cfg = _smtp_config()
     to_email = (order["email"] or "").strip()
     if not to_email:
@@ -613,7 +626,6 @@ def send_notification_email(order, *, background=False) -> str:
         return "no_smtp"
 
     shop_name = cfg["shop_name"]
-    status = order["status"]
     footer = f"---\nKeyrt af Muninn · https://muninn.tolvuhvislarinn.is"
 
     if status == "Staðfest":
@@ -1152,7 +1164,10 @@ def order_edit(order_id):
         
         send_notification = request.form.get("send_notification") == "1"
         new_status = request.form.get("status", order["status"])
-        if send_notification and order["status"] != new_status:
+        if (
+            _should_notify_customer(new_status, send_notification)
+            and order["status"] != new_status
+        ):
             updated_order = db.execute(
                 "SELECT * FROM orders WHERE id = ?", (order_id,)
             ).fetchone()
@@ -1298,9 +1313,7 @@ def order_status(order_id):
     )
     db.commit()
 
-    auto_notify = new_status in ("Komið", "Staðfest")
-    wants_notify = request.form.get("send_notification") == "1" or auto_notify
-    if wants_notify and order["status"] != new_status:
+    if _should_notify_customer(new_status, request.form.get("send_notification") == "1") and order["status"] != new_status:
         updated_order = db.execute(
             "SELECT * FROM orders WHERE id = ?", (order_id,)
         ).fetchone()
