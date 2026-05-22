@@ -2,6 +2,14 @@
 
 | File | Source | License |
 |------|--------|---------|
-| `muninn_caw.mp3` | [Crow #1](https://bigsoundbank.com/crow-1-s2764.html) (BigSoundBank #2764, Joseph SARDIN) | CC0 — no attribution required |
+| `muninn_caw.mp3` | [Nature crow sound effect (no copyright)](https://pixabay.com/sound-effects/nature-crow-sound-effect-no-copyright-410792/) by PoorArtistt on Pixabay | [Pixabay Content License](https://pixabay.com/service/license/) |
 
-Replaced external Pixabay CDN link (403/404 in production).
+Hosted locally (no external CDN). Regenerate:
+
+```bash
+python scripts/download_pixabay_caw.py
+```
+
+Direct CDN URL (may require `Referer: https://pixabay.com/`):
+
+`https://cdn.pixabay.com/download/audio/2025/09/26/audio_c93bab67b9.mp3?filename=poorartistt-crow-sound-effect-no-copyright-410792.mp3`
