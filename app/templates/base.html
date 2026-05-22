@@ -13,6 +13,7 @@
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='pwa-icon-192.png') }}">
     {% endif %}
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='muninn_quotes.js') }}"></script>
     <script>
     (function(){
         var t = localStorage.getItem('theme');
@@ -48,32 +49,9 @@
         });
     }
     setThemeIcons();
-
-    // Random Muninn Quotes
-    var quotes = [
-        "Óðinn mælir með þessu kerfi.",
-        "Muninn flýgur með fréttirnar.",
-        "Valhöll notar ekki lengur Excel.",
-        "Ekkert Ragnarök í dag, pantanirnar eru í öruggum höndum.",
-        "Muninn sér allt. Líka þegar þú gleymdir að hringja í Jón.",
-        "Töluvert áreiðanlegra en bréfdúfa.",
-        "Sleipnir var fljótur, en Muninn sendir póstinn strax.",
-        "Post-it miðar eru til að teikna kalla.",
-        "Engir post-it miðar slösuðust við gerð þessa kerfis.",
-        "Áfram með smjörið (og pantanirnar).",
-        "Þetta reddast. Sérstaklega þegar það er skráð hér.",
-        "Tölvan segir já.",
-        "Trix: Prentaðu límmiða beint á pakkann úr pöntuninni.",
-        "Trix: Færðu pöntunina í 'Komið' og Muninn sendir póst.",
-        "Trix: Kúnninn óþolinmóður? Merktu pöntunina 'Brýnt'.",
-        "Krunk.",
-        "*Vængjasláttur*",
-        "Gefðu mér brauðmola og ég sendi póstinn."
-    ];
-    
-    // Inject quote next to the brand wrap
+    var quotes = window.MUNINN_QUOTES || [];
     var brandWrap = document.querySelector('.brand-wrap');
-    if (brandWrap) {
+    if (brandWrap && quotes.length) {
         var quoteEl = document.createElement('span');
         quoteEl.className = 'header-quote';
         quoteEl.textContent = quotes[Math.floor(Math.random() * quotes.length)];
