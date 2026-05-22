@@ -105,8 +105,7 @@
             
             try {
                 if (!cawAudio) {
-                    // Using a reliable MP3 fallback from a sound effects library
-                    cawAudio = new Audio('https://cdn.pixabay.com/download/audio/2022/03/15/audio_24855734bc.mp3?filename=crow-caw-83269.mp3');
+                    cawAudio = new Audio({{ url_for('static', filename='muninn_caw.mp3')|tojson }});
                     cawAudio.volume = 0.5;
                 }
                 cawAudio.currentTime = 0;
