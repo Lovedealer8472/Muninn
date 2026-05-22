@@ -26,7 +26,7 @@ Muninn is a lightweight **special-order / repair tracking** tool: kanban board, 
 | Soft delete + Rusl (30-day retention) | Live |
 | Trash icon in header | Live |
 | **Tier 1 board UX** (2026-05-22) | Live on TH |
-| **Stjóri / Notandi roles** (2026-05-22) | Live on TH — shared password, role at login |
+| **Stjóri / Notandi roles** (2026-05-22) | Live on TH — `admin` / `user` per role at login |
 
 ### Tier 1 (clerk / owner feedback)
 

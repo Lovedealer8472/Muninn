@@ -33,15 +33,8 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-change-me")
 
 DATABASE = os.path.join(app.root_path, "pantanakerfi.db")
 
-def _password_hash_for_role(role: str) -> str:
-    """Stjóri: admin. Notandi: user. Override via STJORI/NOTANDI_PASSWORD_HASH in .env."""
-    if role == ROLE_STJORI:
-        return (
-            os.environ.get("STJORI_PASSWORD_HASH")
-            or os.environ.get("ADMIN_PASSWORD_HASH")
-            or generate_password_hash("admin")
-        )
-    return os.environ.get("NOTANDI_PASSWORD_HASH") or generate_password_hash("user")
+_STJORI_DEFAULT_HASH = generate_password_hash("admin")
+_NOTANDI_DEFAULT_HASH = generate_password_hash("user")
 
 # ── Workflow constants ──────────────────────────────────────────────
 
@@ -70,6 +63,17 @@ ROLE_LABELS = {
     ROLE_STJORI: "Stjóri",
     ROLE_NOTANDI: "Notandi",
 }
+
+
+def _password_hash_for_role(role: str) -> str:
+    """Stjóri: admin. Notandi: user. Override via STJORI/NOTANDI_PASSWORD_HASH in .env."""
+    if role == ROLE_STJORI:
+        return (
+            os.environ.get("STJORI_PASSWORD_HASH")
+            or os.environ.get("ADMIN_PASSWORD_HASH")
+            or _STJORI_DEFAULT_HASH
+        )
+    return os.environ.get("NOTANDI_PASSWORD_HASH") or _NOTANDI_DEFAULT_HASH
 
 STATUS_HELP = {
     "Móttekið": "Ný beiðni móttekin.",
