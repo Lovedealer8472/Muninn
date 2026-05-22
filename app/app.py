@@ -494,6 +494,14 @@ def pwa_enabled() -> bool:
     return os.environ.get("PWA_ENABLED", "1").lower() in ("1", "true", "yes", "on")
 
 
+def _external_https(endpoint: str, **values):
+    """Manifest/install needs https:// on production hosts behind nginx."""
+    scheme = request.headers.get("X-Forwarded-Proto", request.scheme)
+    if scheme != "https" and request.host.endswith(".tolvuhvislarinn.is"):
+        scheme = "https"
+    return url_for(endpoint, _external=True, _scheme=scheme, **values)
+
+
 @app.context_processor
 def inject_role():
     role = session.get("role")
@@ -610,19 +618,19 @@ def pwa_manifest():
         abort(404)
     icons = [
         {
-            "src": url_for("static", filename="pwa-icon-192.png", _external=True),
+            "src": _external_https("static", filename="pwa-icon-192.png"),
             "sizes": "192x192",
             "type": "image/png",
             "purpose": "any",
         },
         {
-            "src": url_for("static", filename="pwa-icon-512.png", _external=True),
+            "src": _external_https("static", filename="pwa-icon-512.png"),
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any",
         },
         {
-            "src": url_for("static", filename="pwa-icon-512.png", _external=True),
+            "src": _external_https("static", filename="pwa-icon-512.png"),
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "maskable",
@@ -636,7 +644,7 @@ def pwa_manifest():
                 "description": "Pöntunakerfi Tölvuhíslarans",
                 "lang": "is",
                 "id": "/?pwa=muninn",
-                "start_url": url_for("board", _external=True),
+                "start_url": _external_https("board"),
                 "scope": "/",
                 "display": "standalone",
                 "orientation": "any",
