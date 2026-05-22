@@ -62,6 +62,11 @@ Separate passwords per role (defaults if not in `.env`):
 
 Pick role on login, then enter that role’s password. Per-user accounts → backlog.
 
+## PWA (installable app) — test
+
+- **On by default** via `PWA_ENABLED=1` (or unset). **Revert:** `PWA_ENABLED=0` in server `.env` + restart — see `docs/PWA.md`.
+- Board banner **Setja upp** + browser install chip (Chrome/Edge).
+
 ## User research summary
 
 - **Owner:** needs “neglect” visibility on the board, not only inside orders.  

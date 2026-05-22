@@ -486,6 +486,10 @@ def stjori_required(f):
     return decorated
 
 
+def pwa_enabled() -> bool:
+    return os.environ.get("PWA_ENABLED", "1").lower() in ("1", "true", "yes", "on")
+
+
 @app.context_processor
 def inject_role():
     role = session.get("role")
@@ -494,6 +498,7 @@ def inject_role():
         "is_stjori": role == ROLE_STJORI,
         "is_notandi": role == ROLE_NOTANDI,
         "role_label": ROLE_LABELS.get(role, ""),
+        "pwa_enabled": pwa_enabled(),
     }
 
 
@@ -590,6 +595,68 @@ def send_notification_email(to_email, order):
 
     threading.Thread(target=_send_email, args=(to_email, subject, body)).start()
     return True
+
+
+# ── Routes: PWA (optional; disable with PWA_ENABLED=0) ───────────────
+
+
+@app.route("/manifest.webmanifest")
+def pwa_manifest():
+    if not pwa_enabled():
+        abort(404)
+    icons = [
+        {
+            "src": url_for("static", filename="pwa-icon-192.png", _external=True),
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any",
+        },
+        {
+            "src": url_for("static", filename="pwa-icon-512.png", _external=True),
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any",
+        },
+        {
+            "src": url_for("static", filename="pwa-icon-512.png", _external=True),
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable",
+        },
+    ]
+    return (
+        jsonify(
+            {
+                "name": "Muninn – Pantanir",
+                "short_name": "Muninn",
+                "description": "Pöntunakerfi Tölvuhíslarans",
+                "lang": "is",
+                "id": "/?pwa=muninn",
+                "start_url": url_for("board", _external=True),
+                "scope": "/",
+                "display": "standalone",
+                "orientation": "any",
+                "background_color": "#1e1e1e",
+                "theme_color": "#d35400",
+                "icons": icons,
+            }
+        ),
+        200,
+        {"Content-Type": "application/manifest+json"},
+    )
+
+
+@app.route("/sw.js")
+def pwa_service_worker():
+    if not pwa_enabled():
+        abort(404)
+    response = send_from_directory(
+        os.path.join(app.root_path, "static"),
+        "sw.js",
+        mimetype="application/javascript",
+    )
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response
 
 
 # ── Routes: Auth ────────────────────────────────────────────────────

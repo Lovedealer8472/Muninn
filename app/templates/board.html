@@ -37,6 +37,21 @@
     </div>
 </div>
 
+{% if pwa_enabled %}
+<div id="pwa-install-banner" class="pwa-install-banner" hidden aria-hidden="true">
+    <div class="pwa-install-banner-inner">
+        <p class="pwa-install-banner-text">
+            <strong>Setja Muninn á verkefnastikuna?</strong>
+            Sérgluggi á tölvunni — ekki blandast við vafratabba.
+        </p>
+        <div class="pwa-install-banner-actions">
+            <button type="button" class="btn btn-primary btn-sm" id="pwa-install-btn">Setja upp</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-pwa-dismiss>Ekki núna</button>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="board">
     {% for status in statuses %}
     <div class="column">

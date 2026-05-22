@@ -896,6 +896,36 @@ body.qr-modal-open { overflow: hidden; }
 }
 .qr-modal-actions { display: flex; justify-content: center; }
 
+/* ── PWA install banner ─────────────────────────────────────── */
+.pwa-install-banner {
+    max-width: 1200px;
+    margin: 0 auto .75rem;
+    padding: 0 1rem;
+}
+.pwa-install-banner[hidden] { display: none !important; }
+.pwa-install-banner-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .65rem 1rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--primary);
+    background: linear-gradient(135deg, var(--card) 0%, rgba(211, 84, 0, 0.08) 100%);
+}
+.pwa-install-banner-text {
+    margin: 0;
+    font-size: .88rem;
+    color: var(--text);
+    flex: 1 1 14rem;
+}
+.pwa-install-banner-actions {
+    display: flex;
+    gap: .4rem;
+    flex-shrink: 0;
+}
+
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 900px) {
     .board { flex-direction: column; align-items: stretch; }

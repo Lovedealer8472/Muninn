@@ -1,9 +1,17 @@
 <!DOCTYPE html>
-<html lang="is">
+<html lang="is"{% if pwa_enabled %} data-pwa-enabled="1"{% endif %}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Muninn{% endblock %}</title>
+    {% if pwa_enabled %}
+    <link rel="manifest" href="{{ url_for('pwa_manifest') }}">
+    <meta name="theme-color" content="#d35400">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Muninn">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='pwa-icon-192.png') }}">
+    {% endif %}
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script>
     (function(){
@@ -112,5 +120,8 @@
         }
     }
     </script>
+    {% if pwa_enabled %}
+    <script src="{{ url_for('static', filename='pwa.js') }}" defer></script>
+    {% endif %}
 </body>
 </html>
