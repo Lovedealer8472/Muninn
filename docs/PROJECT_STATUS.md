@@ -74,6 +74,10 @@ Pick role on login, then enter that role’s password. Per-user accounts → bac
 - **Clerk:** needs fast phone lookup, pickup obvious, fewer scary mis-clicks.  
 - See `docs/BACKLOG.md` for prioritized next work (Tier 2+).
 
+## Planned (Tier 3)
+
+- **SMS:** spare Android + Hringdu SIM, self-hosted gateway API — see `docs/BACKLOG.md` → SMS notifications.
+
 ## Source of truth
 
 This GitHub repo: **https://github.com/Lovedealer8472/Muninn**

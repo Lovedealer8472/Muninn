@@ -28,8 +28,19 @@ Ordered by **impact × ease** (see conversation 2026-05-22).
 ## Tier 3+
 
 - Daily digest email  
-- SMS  
 - Attention dashboard strip  
+
+### SMS notifications (planned)
+
+Self-hosted via **spare Android phone + shop SIM** (Hringdu); no paid SMS API.
+
+- [ ] Order SIM; confirm SMS send included on Hringdu sub  
+- [ ] Dedicated phone: WiFi, charger, gateway app with local HTTP API  
+- [ ] Reachable from Muninn server (LAN or Tailscale on phone)  
+- [ ] Muninn: `SMS_GATEWAY_URL`, send helper, checkbox on Færa áfram (mirror email)  
+- [ ] Sent/failed banner on order detail (same as email Wave A)  
+- [ ] Pilot triggers: **Komið** (required), **Staðfest** (optional)  
+- [ ] Short transactional templates only (pickup / ETA)  
 
 ## Later (auth)
 
