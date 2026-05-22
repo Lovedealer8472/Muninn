@@ -16,6 +16,9 @@
     </div>
 </div>
 <div class="detail-wrap">
+    {% if email_notice %}
+    <div class="email-notice email-notice--{{ email_notice.kind }}" role="status">{{ email_notice.text }}</div>
+    {% endif %}
     <div class="detail-card">
         <div class="detail-hero">
             <div class="detail-hero-main">

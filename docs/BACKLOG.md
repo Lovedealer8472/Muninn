@@ -13,12 +13,15 @@ Ordered by **impact × ease** (see conversation 2026-05-22).
 - [x] Lokið = afhent hint on detail  
 - [x] Status change redirect → order detail  
 
-## Tier 2 — Next
+## Done — Tier 2 (Wave A)
 
-- [ ] Stale filter or sort (`?stale=7`, oldest `updated_at` first)  
+- [x] Stale filter (`?stale=7`, oldest `updated_at` first in column)  
+- [x] Email sent/failed/info banner on order after advance  
+- [x] Comment count on board cards  
+
+## Tier 2 — Next (Wave B)
+
 - [ ] Counter / lookup mode (`/leita`)  
-- [ ] Email sent/failed banner on order after advance  
-- [ ] Comment count on cards  
 - [ ] Clerk-simplified detail (collapse Saga / Viðhengi)  
 - [ ] Pickup-oriented print slip  
 

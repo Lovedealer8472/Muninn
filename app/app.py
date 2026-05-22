@@ -8,6 +8,7 @@ import smtplib
 from email.message import EmailMessage
 from datetime import datetime, timedelta
 from functools import wraps
+from typing import Optional
 
 from dotenv import load_dotenv
 from flask import (
@@ -333,10 +334,33 @@ def _order_card_view(row, today: str) -> dict:
     o["is_pickup"] = row["status"] == "Komið"
     cs = row["contact_status"] or ""
     o["contact_short"] = CONTACT_SHORT.get(cs, cs[:12] if cs else "")
+    o["comment_count"] = int(row["comment_count"]) if "comment_count" in row.keys() else 0
     return o
 
 
-def _board_orders_query(db, query):
+def _board_orders_query(db, query, stale_days=None):
+    comment_join = """
+        LEFT JOIN (
+            SELECT order_id, COUNT(*) AS comment_count
+            FROM order_comments
+            GROUP BY order_id
+        ) cc ON cc.order_id = orders.id
+    """
+    stale_clause = ""
+    stale_params = []
+    if stale_days is not None and stale_days > 0:
+        stale_clause = (
+            " AND datetime(COALESCE(updated_at, created_at)) "
+            "<= datetime('now', ?)"
+        )
+        stale_params.append(f"-{int(stale_days)} days")
+
+    order_by_stale = ""
+    if stale_days is not None and stale_days > 0:
+        order_by_stale = "updated_at ASC, "
+
+    select_cols = "orders.*, COALESCE(cc.comment_count, 0) AS comment_count"
+
     if query:
         like = f"%{query}%"
         phone_digits = _digits_only(query)
@@ -348,9 +372,11 @@ def _board_orders_query(db, query):
                 "'(', ''), ')', '') LIKE ?"
             )
             params.append(f"%{phone_digits}%")
+        params.extend(stale_params)
         return db.execute(
             f"""
-            SELECT * FROM orders
+            SELECT {select_cols} FROM orders
+            {comment_join}
             WHERE deleted_at IS NULL
               AND (customer_name LIKE ?
                OR phone LIKE ?
@@ -358,8 +384,9 @@ def _board_orders_query(db, query):
                OR product_name LIKE ?
                OR product_model LIKE ?
                OR supplier LIKE ?
-               OR notes LIKE ?{phone_clause})
+               OR notes LIKE ?{phone_clause}){stale_clause}
             ORDER BY
+                {order_by_stale}
                 CASE priority
                     WHEN 'Brýnt' THEN 0
                     WHEN 'Mikilvægt' THEN 1
@@ -370,24 +397,38 @@ def _board_orders_query(db, query):
             tuple(params),
         ).fetchall()
     return db.execute(
-        """
-        SELECT * FROM orders
-        WHERE deleted_at IS NULL
+        f"""
+        SELECT {select_cols} FROM orders
+        {comment_join}
+        WHERE deleted_at IS NULL{stale_clause}
         ORDER BY
+            {order_by_stale}
             CASE priority
                 WHEN 'Brýnt' THEN 0
                 WHEN 'Mikilvægt' THEN 1
                 ELSE 2
             END,
             created_at DESC
-        """
+        """,
+        tuple(stale_params),
     ).fetchall()
 
 
-def _board_version_for_rows(rows, query):
+def _parse_stale_days(raw) -> Optional[int]:
+    if raw is None or raw == "":
+        return None
+    try:
+        days = int(raw)
+    except (TypeError, ValueError):
+        return None
+    return days if days > 0 else None
+
+
+def _board_version_for_rows(rows, query, stale_days=None):
     count = len(rows)
     max_updated = max((r["updated_at"] for r in rows), default="")
-    return f"{count}:{max_updated}:{query}"
+    stale = stale_days if stale_days is not None else ""
+    return f"{count}:{max_updated}:{query}:{stale}"
 
 
 @app.cli.command("init-db")
@@ -562,8 +603,15 @@ def _send_email(to_email, subject, body):
         return False
 
 
-def send_notification_email(to_email, order):
+def send_notification_email(order, *, background=False) -> str:
+    """Send status email. Returns: skipped | no_email | no_smtp | sent | failed | queued."""
     cfg = _smtp_config()
+    to_email = (order["email"] or "").strip()
+    if not to_email:
+        return "no_email"
+    if not cfg["server"] or not cfg["user"] or not cfg["password"]:
+        return "no_smtp"
+
     shop_name = cfg["shop_name"]
     status = order["status"]
     footer = f"---\nKeyrt af Muninn · https://muninn.tolvuhvislarinn.is"
@@ -605,8 +653,41 @@ def send_notification_email(to_email, order):
         )
         subject = f"Uppfærsla á pöntun #{order['id']} – {shop_name}"
 
-    threading.Thread(target=_send_email, args=(to_email, subject, body)).start()
-    return True
+    if background:
+        threading.Thread(
+            target=_send_email, args=(to_email, subject, body)
+        ).start()
+        return "queued"
+
+    return "sent" if _send_email(to_email, subject, body) else "failed"
+
+
+def _flash_email_result(result: str) -> None:
+    messages = {
+        "sent": ("Tilkynning send í tölvupósti til viðskiptavinar.", "success"),
+        "failed": ("Póstur mistókst — reyndu aftur eða hringdu í viðskiptavin.", "error"),
+        "no_email": ("Enginn póstur (ekki netfang skráð).", "info"),
+        "no_smtp": ("Póstur ekki sendur (SMTP ekki stillt).", "warning"),
+        "queued": ("Tilkynning send í bakgrunni.", "success"),
+    }
+    if result in messages:
+        flash(*messages[result])
+
+
+EMAIL_NOTICE = {
+    "sent": ("Tilkynning send í tölvupósti til viðskiptavinar.", "success"),
+    "failed": ("Póstur mistókst — reyndu aftur eða hringdu í viðskiptavin.", "error"),
+    "no_email": ("Enginn póstur sendur (ekki netfang skráð).", "info"),
+    "no_smtp": ("Póstur ekki sendur (SMTP ekki stillt á netþjóni).", "warning"),
+}
+
+
+def _pop_email_notice(order_id: int) -> Optional[dict]:
+    result = session.pop(f"email_notice_{order_id}", None)
+    if not result or result not in EMAIL_NOTICE:
+        return None
+    text, kind = EMAIL_NOTICE[result]
+    return {"text": text, "kind": kind}
 
 
 # ── Routes: PWA (optional; disable with PWA_ENABLED=0) ───────────────
@@ -743,7 +824,8 @@ def track():
 def board():
     db = get_db()
     query = request.args.get("q", "").strip()
-    rows = _board_orders_query(db, query)
+    stale_days = _parse_stale_days(request.args.get("stale"))
+    rows = _board_orders_query(db, query, stale_days)
 
     today = datetime.now().strftime("%Y-%m-%d")
     columns = {s: [] for s in STATUSES}
@@ -752,13 +834,14 @@ def board():
         if status in columns:
             columns[status].append(_order_card_view(row, today))
 
-    board_version = _board_version_for_rows(rows, query)
+    board_version = _board_version_for_rows(rows, query, stale_days)
     return render_template(
         "board.html",
         columns=columns,
         statuses=STATUSES,
         status_help=STATUS_HELP,
         query=query,
+        stale_days=stale_days,
         today=today,
         board_version=board_version,
         trash_count=_trash_count(db),
@@ -770,8 +853,9 @@ def board():
 def board_version_api():
     db = get_db()
     query = request.args.get("q", "").strip()
-    rows = _board_orders_query(db, query)
-    return jsonify({"version": _board_version_for_rows(rows, query)})
+    stale_days = _parse_stale_days(request.args.get("stale"))
+    rows = _board_orders_query(db, query, stale_days)
+    return jsonify({"version": _board_version_for_rows(rows, query, stale_days)})
 
 
 @app.route("/stats")
@@ -954,6 +1038,7 @@ def order_detail(order_id):
         comments=comments,
         track_url=track_url,
         status_help=STATUS_HELP,
+        email_notice=_pop_email_notice(order_id),
     )
 
 
@@ -1066,12 +1151,14 @@ def order_edit(order_id):
         db.commit()
         
         send_notification = request.form.get("send_notification") == "1"
-        if send_notification and order["status"] != request.form.get("status", order["status"]) and request.form.get("email", "").strip():
-            updated_order = db.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
-            if send_notification_email(updated_order["email"], updated_order):
-                flash("Pöntun uppfærð og tilkynning send.", "success")
-            else:
-                flash("Pöntun uppfærð en tókst ekki að senda tölvupóst.", "error")
+        new_status = request.form.get("status", order["status"])
+        if send_notification and order["status"] != new_status:
+            updated_order = db.execute(
+                "SELECT * FROM orders WHERE id = ?", (order_id,)
+            ).fetchone()
+            result = send_notification_email(updated_order)
+            flash("Pöntun uppfærð.", "success")
+            _flash_email_result(result)
             return redirect(url_for("board"))
             
         flash("Pöntun uppfærð.", "success")
@@ -1212,12 +1299,13 @@ def order_status(order_id):
     db.commit()
 
     auto_notify = new_status in ("Komið", "Staðfest")
-    if (request.form.get("send_notification") == "1" or auto_notify) and order["status"] != new_status and (order["email"] or "").strip():
-        updated_order = db.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
-        send_notification_email(updated_order["email"], updated_order)
-        flash("Staða uppfærð. Tilkynning send í bakgrunni.", "success")
-    else:
-        flash("Staða uppfærð.", "success")
+    wants_notify = request.form.get("send_notification") == "1" or auto_notify
+    if wants_notify and order["status"] != new_status:
+        updated_order = db.execute(
+            "SELECT * FROM orders WHERE id = ?", (order_id,)
+        ).fetchone()
+        session[f"email_notice_{order_id}"] = send_notification_email(updated_order)
+    flash("Staða uppfærð.", "success")
 
     return redirect(url_for("order_detail", order_id=order_id))
 

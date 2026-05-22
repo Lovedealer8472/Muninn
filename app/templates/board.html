@@ -30,6 +30,11 @@
         <a class="btn btn-secondary btn-sm" href="{{ url_for('stats') }}">Tölfræði</a>
         {% endif %}
         {% include 'status_legend_modal.html' %}
+        {% if stale_days %}
+        <a class="btn btn-secondary btn-sm board-filter-active" href="{{ url_for('board', q=query) if query else url_for('board') }}" title="Sýnir pantanir óbreyttar í {{ stale_days }}+ daga">Seint ({{ stale_days }}d+) ✕</a>
+        {% else %}
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('board', q=query, stale=7) if query else url_for('board', stale=7) }}" title="Sía: ekki uppfært í 7+ daga">Seint (7d+)</a>
+        {% endif %}
         <a class="btn btn-primary" href="{{ url_for('order_new') }}">+ Ný pöntun</a>
         <span id="board-refresh-hint" class="board-refresh-hint" title="Sjálfvirk endurnýjun"></span>
         <button class="theme-toggle" onclick="toggleTheme()" title="Ljóst/Dökkt"></button>
@@ -50,6 +55,10 @@
         </div>
     </div>
 </div>
+{% endif %}
+
+{% if stale_days %}
+<p class="board-filter-hint">Sýni pantanir sem hafa ekki verið uppfærðar í <strong>{{ stale_days }}+ daga</strong> — elst fyrst í hverjum dálki.</p>
 {% endif %}
 
 <div class="board">
@@ -88,6 +97,9 @@
                     {% if order.idle_days >= 1 %}
                         <span class="badge badge-idle" title="Síðast uppfært">{{ order.idle_days }}d</span>
                     {% endif %}
+                    {% if order.comment_count %}
+                        <span class="badge badge-comments" title="{{ order.comment_count }} athugasemd(ir)">Umm. {{ order.comment_count }}</span>
+                    {% endif %}
                     <span class="badge badge-payment-{{ order.payment_status|lower }}">{{ order.payment_status }}</span>
                 </div>
                 {% if is_stjori %}
@@ -112,12 +124,14 @@
 (function () {
     var initialVersion = {{ board_version|tojson }};
     var query = {{ query|tojson }};
+    var staleDays = {{ stale_days|tojson }};
     var lastVersion = initialVersion;
     var hint = document.getElementById('board-refresh-hint');
 
     function poll() {
         if (document.hidden) { return; }
         var url = '{{ url_for("board_version_api") }}?q=' + encodeURIComponent(query || '');
+        if (staleDays) { url += '&stale=' + encodeURIComponent(String(staleDays)); }
         fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
             .then(function (r) { return r.ok ? r.json() : null; })
             .then(function (data) {
