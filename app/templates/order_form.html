@@ -10,125 +10,185 @@
     </div>
     <button class="theme-toggle" onclick="toggleTheme()" title="Ljóst/Dökkt"></button>
 </div>
-<div class="form-wrap form-wrap--compact">
-    <div class="form-card form-card--compact">
-        <form method="post" class="form-compact">
+<div class="form-wrap form-wrap--order">
+    <div class="form-card">
+        <form method="post" class="order-form">
             <div class="form-hero">
-                <h2>{% if order %}Breyta #{{ order.id }}{% else %}Ný pöntun{% endif %}</h2>
+                <div>
+                    <h2>{% if order %}Breyta #{{ order.id }}{% else %}Ný pöntun{% endif %}</h2>
+                    {% if not order %}
+                    <p class="form-lead">Nafn, sími og vara — restin má bíða.</p>
+                    {% endif %}
+                </div>
                 <div class="form-actions form-actions--inline">
                     <button type="submit" class="btn btn-primary">Vista</button>
                     <a class="btn btn-secondary" href="{% if order %}{{ url_for('order_detail', order_id=order.id) }}{% else %}{{ url_for('board') }}{% endif %}">Hætta við</a>
                 </div>
             </div>
 
-            <div class="form-grid">
-                <div class="form-group">
-                    <label for="customer_name">Nafn viðskiptavinar *</label>
-                    <input type="text" id="customer_name" name="customer_name"
-                           value="{{ order.customer_name if order else '' }}" required>
+            <section class="form-section" aria-labelledby="form-customer-heading">
+                <h3 class="form-section-title" id="form-customer-heading">Viðskiptavin</h3>
+                <div class="form-section-body">
+                    <div class="form-group form-group--span2">
+                        <label for="customer_name">Nafn *</label>
+                        <input type="text" id="customer_name" name="customer_name"
+                               value="{{ order.customer_name if order else '' }}"
+                               placeholder="Fullt nafn" required autofocus>
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Sími</label>
+                        <input type="tel" id="phone" name="phone"
+                               value="{{ order.phone if order else '' }}"
+                               placeholder="Símanúmer" inputmode="tel" autocomplete="tel">
+                        <span class="form-hint">Notað við leit og tilkynningar</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Netfang</label>
+                        <input type="email" id="email" name="email"
+                               value="{{ order.email if order else '' }}"
+                               placeholder="valfrjálst" autocomplete="email">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="phone">Símanúmer</label>
-                    <input type="text" id="phone" name="phone"
-                           value="{{ order.phone if order else '' }}">
-                </div>
-                <div class="form-group">
-                    <label for="email">Netfang</label>
-                    <input type="email" id="email" name="email"
-                           value="{{ order.email if order else '' }}">
-                </div>
-                <div class="form-group">
-                    <label for="product_name">Vara *</label>
-                    <input type="text" id="product_name" name="product_name"
-                           value="{{ order.product_name if order else '' }}" required>
-                </div>
-                <div class="form-group">
-                    <label for="product_model">Módel</label>
-                    <input type="text" id="product_model" name="product_model"
-                           value="{{ order.product_model if order else '' }}">
-                </div>
-                <div class="form-group">
-                    <label for="supplier">Birgir</label>
-                    <input type="text" id="supplier" name="supplier"
-                           value="{{ order.supplier if order else '' }}">
-                </div>
+            </section>
 
-                {% if order %}
-                <div class="form-group">
-                    <label for="status">Staða</label>
-                    <select id="status" name="status">
-                        {% for s in statuses %}
-                            <option value="{{ s }}" {% if order.status == s %}selected{% endif %}>{{ s }}</option>
-                        {% endfor %}
-                    </select>
+            <section class="form-section" aria-labelledby="form-product-heading">
+                <h3 class="form-section-title" id="form-product-heading">Varan</h3>
+                <div class="form-section-body">
+                    <div class="form-group form-group--span2">
+                        <label for="product_name">Vara *</label>
+                        <input type="text" id="product_name" name="product_name"
+                               value="{{ order.product_name if order else '' }}"
+                               placeholder="Hvað er verið að panta?" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="product_model">Módel</label>
+                        <input type="text" id="product_model" name="product_model"
+                               value="{{ order.product_model if order else '' }}"
+                               placeholder="valfrjálst">
+                    </div>
+                    <div class="form-group">
+                        <label for="supplier">Birgir</label>
+                        <input type="text" id="supplier" name="supplier"
+                               value="{{ order.supplier if order else '' }}"
+                               placeholder="valfrjálst">
+                    </div>
                 </div>
-                {% endif %}
-                <div class="form-group">
-                    <label for="priority">Forgangur</label>
-                    <select id="priority" name="priority">
-                        {% for p in priority_options %}
-                            <option value="{{ p }}" {% if order and order.priority == p %}selected{% endif %}>{{ p }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="payment_status">Greiðslustaða</label>
-                    <select id="payment_status" name="payment_status">
-                        {% for ps in payment_options %}
-                            <option value="{{ ps }}" {% if order and order.payment_status == ps %}selected{% endif %}>{{ ps }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                {% if order %}
-                <div class="form-group">
-                    <label for="contact_status">Samskiptastaða</label>
-                    <select id="contact_status" name="contact_status">
-                        {% for cs in contact_options %}
-                            <option value="{{ cs }}" {% if order.contact_status == cs %}selected{% endif %}>{{ cs }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                {% endif %}
-
-                <div class="form-group">
-                    <label for="date_requested">Dagsetning beiðni</label>
-                    <input type="date" id="date_requested" name="date_requested"
-                           value="{{ order.date_requested if order else today }}">
-                </div>
-                <div class="form-group">
-                    <label for="date_ordered">Pöntun send</label>
-                    <input type="date" id="date_ordered" name="date_ordered"
-                           value="{{ order.date_ordered if order else '' }}">
-                </div>
-                <div class="form-group">
-                    <label for="estimated_arrival">Áætluð koma</label>
-                    <input type="date" id="estimated_arrival" name="estimated_arrival"
-                           value="{{ order.estimated_arrival if order else '' }}">
-                </div>
-                <div class="form-group">
-                    <label for="date_arrived">Vara komin</label>
-                    <input type="date" id="date_arrived" name="date_arrived"
-                           value="{{ order.date_arrived if order else '' }}">
-                </div>
-                {% if order %}
-                <div class="form-group">
-                    <label for="date_completed">Lokið</label>
-                    <input type="date" id="date_completed" name="date_completed"
-                           value="{{ order.date_completed if order else '' }}">
-                </div>
-                {% endif %}
-            </div>
+            </section>
 
             {% if order %}
-            <div class="form-group form-group--check">
-                <input type="checkbox" id="send_notification" name="send_notification" value="1">
-                <label for="send_notification">Senda tilkynningu ef staða breytist</label>
-            </div>
+            <section class="form-section" aria-labelledby="form-status-heading">
+                <h3 class="form-section-title" id="form-status-heading">Staða og greiðsla</h3>
+                <div class="form-section-body form-section-body--quad">
+                    <div class="form-group">
+                        <label for="status">Staða</label>
+                        <select id="status" name="status">
+                            {% for s in statuses %}
+                                <option value="{{ s }}" {% if order.status == s %}selected{% endif %}>{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="priority">Forgangur</label>
+                        <select id="priority" name="priority">
+                            {% for p in priority_options %}
+                                <option value="{{ p }}" {% if order.priority == p %}selected{% endif %}>{{ p }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="payment_status">Greiðsla</label>
+                        <select id="payment_status" name="payment_status">
+                            {% for ps in payment_options %}
+                                <option value="{{ ps }}" {% if order.payment_status == ps %}selected{% endif %}>{{ ps }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="contact_status">Samskipti</label>
+                        <select id="contact_status" name="contact_status">
+                            {% for cs in contact_options %}
+                                <option value="{{ cs }}" {% if order.contact_status == cs %}selected{% endif %}>{{ cs }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <details class="form-section form-section--fold">
+                <summary class="form-section-title form-section-title--fold">Dagsetningar</summary>
+                <div class="form-section-body form-section-body--dates">
+                    <div class="form-group">
+                        <label for="date_requested">Beiðni</label>
+                        <input type="date" id="date_requested" name="date_requested"
+                               value="{{ order.date_requested if order else today }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="date_ordered">Pöntun send</label>
+                        <input type="date" id="date_ordered" name="date_ordered"
+                               value="{{ order.date_ordered if order else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="estimated_arrival">Áætluð koma</label>
+                        <input type="date" id="estimated_arrival" name="estimated_arrival"
+                               value="{{ order.estimated_arrival if order else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="date_arrived">Vara komin</label>
+                        <input type="date" id="date_arrived" name="date_arrived"
+                               value="{{ order.date_arrived if order else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="date_completed">Lokið</label>
+                        <input type="date" id="date_completed" name="date_completed"
+                               value="{{ order.date_completed if order else '' }}">
+                    </div>
+                </div>
+            </details>
+
+            <section class="form-section">
+                <div class="form-group form-group--full">
+                    <label for="notes">Athugasemdir</label>
+                    <textarea id="notes" name="notes" rows="2" placeholder="Stutt skráning, t.d. litur eða sérósk">{{ order.notes if order else '' }}</textarea>
+                </div>
+                <div class="form-group form-group--check">
+                    <input type="checkbox" id="send_notification" name="send_notification" value="1">
+                    <label for="send_notification">Senda tilkynningu ef staða breytist</label>
+                </div>
+            </section>
+
+            {% else %}
+            <input type="hidden" name="date_requested" value="{{ today }}">
+
+            <details class="form-section form-section--fold">
+                <summary class="form-section-title form-section-title--fold">Meira (valfrjálst)</summary>
+                <div class="form-section-body form-section-body--quad">
+                    <div class="form-group">
+                        <label for="priority">Forgangur</label>
+                        <select id="priority" name="priority">
+                            {% for p in priority_options %}
+                                <option value="{{ p }}" {% if p == 'Venjulegt' %}selected{% endif %}>{{ p }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="payment_status">Greiðsla</label>
+                        <select id="payment_status" name="payment_status">
+                            {% for ps in payment_options %}
+                                <option value="{{ ps }}" {% if ps == 'Ógreitt' %}selected{% endif %}>{{ ps }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group form-group--span2">
+                        <label for="notes">Athugasemdir</label>
+                        <textarea id="notes" name="notes" rows="2" placeholder="Stutt skráning"></textarea>
+                    </div>
+                </div>
+            </details>
             {% endif %}
 
-            <div class="form-group form-group--full">
-                <label for="notes">Athugasemdir</label>
-                <textarea id="notes" name="notes" rows="2">{{ order.notes if order else '' }}</textarea>
+            <div class="form-footer">
+                <button type="submit" class="btn btn-primary">Vista pöntun</button>
+                <a class="btn btn-secondary" href="{% if order %}{{ url_for('order_detail', order_id=order.id) }}{% else %}{{ url_for('board') }}{% endif %}">Hætta við</a>
             </div>
         </form>
     </div>
