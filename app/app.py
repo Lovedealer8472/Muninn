@@ -33,10 +33,15 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-change-me")
 
 DATABASE = os.path.join(app.root_path, "pantanakerfi.db")
 
-ADMIN_PASSWORD_HASH = os.environ.get(
-    "ADMIN_PASSWORD_HASH",
-    generate_password_hash("pantanakerfi"),  # default for first run
-)
+def _password_hash_for_role(role: str) -> str:
+    """Stjóri: admin. Notandi: user. Override via STJORI/NOTANDI_PASSWORD_HASH in .env."""
+    if role == ROLE_STJORI:
+        return (
+            os.environ.get("STJORI_PASSWORD_HASH")
+            or os.environ.get("ADMIN_PASSWORD_HASH")
+            or generate_password_hash("admin")
+        )
+    return os.environ.get("NOTANDI_PASSWORD_HASH") or generate_password_hash("user")
 
 # ── Workflow constants ──────────────────────────────────────────────
 
@@ -593,12 +598,12 @@ def login():
         role = request.form.get("role", ROLE_NOTANDI)
         if role not in (ROLE_STJORI, ROLE_NOTANDI):
             role = ROLE_NOTANDI
-        if check_password_hash(ADMIN_PASSWORD_HASH, password):
+        if check_password_hash(_password_hash_for_role(role), password):
             session["logged_in"] = True
             session["role"] = role
             session["user"] = ROLE_LABELS[role]
             return redirect(url_for("board"))
-        flash("Rangt lykilorð.", "error")
+        flash("Rangt lykilorð fyrir valda aðgang.", "error")
     return render_template("login.html")
 
 

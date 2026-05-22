@@ -55,7 +55,12 @@ Muninn is a lightweight **special-order / repair tracking** tool: kanban board, 
 | Eyða / Rusl | No | Yes |
 | Tölfræði | No | Yes |
 
-One shop password for both; pick role on login. Per-user accounts → backlog.
+Separate passwords per role (defaults if not in `.env`):
+
+- **Stjóri:** `admin` (`STJORI_PASSWORD_HASH` / legacy `ADMIN_PASSWORD_HASH`)
+- **Notandi:** `user` (`NOTANDI_PASSWORD_HASH`)
+
+Pick role on login, then enter that role’s password. Per-user accounts → backlog.
 
 ## User research summary
 
