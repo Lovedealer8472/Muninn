@@ -5,10 +5,12 @@ import html
 import os
 from typing import Any, Optional
 
+from muninn.config import STATUS_HELP
+
 
 def _shop_context() -> dict[str, str]:
     return {
-        "name": os.environ.get("SHOP_NAME", "Tölvuhísill").strip(),
+        "name": os.environ.get("SHOP_NAME", "Verslunin").strip(),
         "phone": os.environ.get("SHOP_PHONE", "").strip(),
         "url": os.environ.get("SHOP_URL", "https://tolvuhvislarinn.is").strip(),
     }
@@ -26,6 +28,14 @@ def _order_ref(order: dict[str, Any]) -> str:
     return f"#{order['id']}"
 
 
+def _greeting(customer_raw: str) -> tuple[str, str]:
+    """Plain-text and HTML greeting line."""
+    name = (customer_raw or "").strip()
+    if name and name.lower() != "viðskiptavin":
+        return f"Góðan dag {name},", f"Góðan dag {html.escape(name)},"
+    return "Góðan dag,", "Góðan dag,"
+
+
 def build_customer_notification(
     order: dict[str, Any], *, track_url: Optional[str] = None
 ) -> Optional[tuple[str, str, str, str]]:
@@ -36,50 +46,54 @@ def build_customer_notification(
         return None
 
     shop = _shop_context()
-    customer_raw = (order.get("customer_name") or "viðskiptavin").strip()
-    customer = html.escape(customer_raw)
+    customer_raw = (order.get("customer_name") or "").strip() or "viðskiptavin"
     product_raw = _product_summary(order)
     order_ref = _order_ref(order)
     eta = (order.get("estimated_arrival") or "").strip()
+    greeting_plain, greeting_html = _greeting(customer_raw)
 
     if status == "Staðfest":
         subject = f"Pöntun {order_ref} staðfest — {shop['name']}"
         lead = (
-            f"Pöntun {order_ref} ({product_raw}) hefur verið "
-            f"staðfest hjá birgi og er á leiðinni til okkar."
+            f"Pöntun {order_ref} á {product_raw} hefur verið staðfest. "
+            f"Vöran er pönduð og á leiðinni til okkar."
         )
         if eta:
-            detail = f"Áætluð koma: {eta}."
-            closing = "Við látum þig vita þegar varan er tilbúin til afhendingar."
+            detail = f"Gert er ráð fyrir að hún nái til okkar {eta}."
+            closing = "Við sendum þér póst um leið og varan er tilbúin til afhendingar."
         else:
             detail = None
-            closing = "Við látum þig vita þegar varan er komin."
+            closing = "Við sendum þér póst um leið og varan er tilbúin til afhendingar."
     elif status == "Komið":
-        subject = f"Tilbúin til afhendingar — {shop['name']}"
+        subject = f"Varan þín er tilbúin — {shop['name']}"
         lead = (
-            f"{product_raw} (pöntun {order_ref}) "
-            f"er komin og tilbúin til afhendingar hjá okkur."
+            f"{product_raw} (pöntun {order_ref}) er komin og "
+            f"tilbúin til afhendingar."
         )
         detail = None
-        closing = "Komdu við hæfis — við höfum samband ef þú hefur spurningar."
+        closing = (
+            "Hægt er að sækja hana á opnunartíma okkar. "
+            "Hafðu samband ef þú hefur spurningar."
+        )
     else:
         if not track_url:
             return None
         subject = f"Uppfærsla á pöntun {order_ref} — {shop['name']}"
-        lead = (
-            f"Staða pöntunar {order_ref} ({product_raw}) "
-            f"hefur verið uppfærð í: {status}."
-        )
-        detail = f"Fylgstu með: {track_url}"
+        status_note = STATUS_HELP.get(status)
+        if status_note:
+            lead = f"Uppfærsla á pöntun {order_ref} ({product_raw}): {status_note}"
+        else:
+            lead = f"Staða pöntunar {order_ref} ({product_raw}) er nú: {status}."
+        detail = f"Þú getur fylgst með stöðu pöntunarinnar hér: {track_url}"
         closing = None
 
-    text = _plain_email(customer_raw, shop, lead, detail, closing)
-    html_body = _html_email(customer, shop, lead, detail, closing, order_ref)
+    text = _plain_email(greeting_plain, shop, lead, detail, closing)
+    html_body = _html_email(greeting_html, shop, lead, detail, closing, order_ref)
     return to_email, subject, text, html_body
 
 
-def _plain_email(customer, shop, lead, detail, closing) -> str:
-    lines = [f"Sæl(l) {customer},", "", lead]
+def _plain_email(greeting, shop, lead, detail, closing) -> str:
+    lines = [greeting, "", lead]
     if detail:
         lines.extend(["", detail])
     if closing:
@@ -92,7 +106,7 @@ def _plain_email(customer, shop, lead, detail, closing) -> str:
     return "\n".join(lines)
 
 
-def _html_email(customer, shop, lead, detail, closing, order_ref) -> str:
+def _html_email(greeting_html, shop, lead, detail, closing, order_ref) -> str:
     shop_name = html.escape(shop["name"])
     lead_html = html.escape(lead)
     detail_html = (
@@ -132,7 +146,7 @@ def _html_email(customer, shop, lead, detail, closing, order_ref) -> str:
           </tr>
           <tr>
             <td style="padding:28px;">
-              <p style="margin:0 0 8px;font-size:16px;color:#111827;">Sæl(l) {customer},</p>
+              <p style="margin:0 0 8px;font-size:16px;color:#111827;">{greeting_html}</p>
               <p style="margin:0;font-size:15px;line-height:1.55;color:#374151;">{lead_html}</p>
               {detail_html}
               {closing_html}

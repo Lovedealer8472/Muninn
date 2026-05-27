@@ -29,6 +29,13 @@
             <div class="flash {{ category }}">{{ msg }}</div>
         {% endfor %}
     {% endwith %}
+    {% if trial_active and not trial_expired and trial_days_remaining is not none %}
+    <div class="trial-banner{% if trial_days_remaining <= 3 %} trial-banner--urgent{% endif %}" role="status">
+        Prufuáskrift Muninn — <strong>{{ trial_days_remaining }}</strong>
+        {%- if trial_days_remaining == 1 %} dagur{% else %} dagar{% endif %} eftir
+        (til {{ trial_expires_on }})
+    </div>
+    {% endif %}
     {% block body %}{% endblock %}
     <script>
     function toggleTheme() {

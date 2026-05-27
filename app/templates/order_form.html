@@ -150,10 +150,6 @@
                     <label for="notes">Athugasemdir</label>
                     <textarea id="notes" name="notes" rows="2" placeholder="Stutt skráning, t.d. litur eða sérósk">{{ order.notes if order else '' }}</textarea>
                 </div>
-                <div class="form-group form-group--check">
-                    <input type="checkbox" id="send_notification" name="send_notification" value="1">
-                    <label for="send_notification">Senda tilkynningu ef staða breytist</label>
-                </div>
             </section>
 
             {% else %}

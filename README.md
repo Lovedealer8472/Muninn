@@ -15,6 +15,7 @@ Order-tracking board for small shops (Icelandic workflow). Flask + SQLite + Wait
 | Host | Path on server | URL | Notes |
 |------|----------------|-----|-------|
 | **TH (dev/Muninn UI)** | `/opt/pantanir-tolvuhvisl` | `th.tolvuhvislarinn.is` | Primary development target |
+| **Pan (trial/demo)** | `/opt/pan-tolvuhvisl` | `pan.tolvuhvislarinn.is` | 14-day trial instances |
 | Pantanakerfi (prod store) | `/opt/pantanakerfi` | `pantanakerfi.tolvuhvislarinn.is` | Deploy only when explicitly requested |
 
 ## Quick start (local)
@@ -40,5 +41,9 @@ Or manually: copy `app/*` to `notandi@100.79.10.104:/opt/pantanir-tolvuhvisl/` a
 
 ## Docs
 
+- [Evolution log](docs/EVOLUTION.md) — how Muninn got here
 - [Project status](docs/PROJECT_STATUS.md)
 - [Backlog](docs/BACKLOG.md)
+- [Engineering](docs/ENGINEERING.md) — structure, tests, logging, backup
+- [Pan trial](docs/PAN_TRIAL.md) — 14-day demo instances
+- [Market research](docs/MARKET_RESEARCH.md)

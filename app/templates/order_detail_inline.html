@@ -1,0 +1,95 @@
+<section class="detail-inline-edit" aria-label="Breyta upplýsingum">
+    <details class="detail-edit-panel">
+        <summary class="detail-edit-summary">Viðskiptavin</summary>
+        <form method="post" action="{{ url_for('order_inline_update', order_id=order.id, section='customer') }}" class="detail-edit-form">
+            <div class="detail-edit-grid">
+                <div class="detail-edit-field detail-edit-field--wide">
+                    <label for="inline-customer_name">Nafn</label>
+                    <input type="text" id="inline-customer_name" name="customer_name"
+                           value="{{ order.customer_name }}" required>
+                </div>
+                <div class="detail-edit-field">
+                    <label for="inline-phone">Sími</label>
+                    <input type="tel" id="inline-phone" name="phone"
+                           value="{{ order.phone or '' }}" inputmode="tel" autocomplete="tel">
+                </div>
+                <div class="detail-edit-field">
+                    <label for="inline-email">Netfang</label>
+                    <input type="email" id="inline-email" name="email"
+                           value="{{ order.email or '' }}" autocomplete="email">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-secondary btn-sm">Vista viðskiptavin</button>
+        </form>
+    </details>
+
+    <details class="detail-edit-panel">
+        <summary class="detail-edit-summary">Vara og birgir</summary>
+        <form method="post" action="{{ url_for('order_inline_update', order_id=order.id, section='product') }}" class="detail-edit-form">
+            <div class="detail-edit-grid">
+                <div class="detail-edit-field detail-edit-field--wide">
+                    <label for="inline-product_name">Vara</label>
+                    <input type="text" id="inline-product_name" name="product_name"
+                           value="{{ order.product_name }}" required>
+                </div>
+                <div class="detail-edit-field">
+                    <label for="inline-product_model">Módel</label>
+                    <input type="text" id="inline-product_model" name="product_model"
+                           value="{{ order.product_model or '' }}">
+                </div>
+                <div class="detail-edit-field">
+                    <label for="inline-supplier">Birgir</label>
+                    <input type="text" id="inline-supplier" name="supplier"
+                           value="{{ order.supplier or '' }}">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-secondary btn-sm">Vista vöru</button>
+        </form>
+    </details>
+
+    <details class="detail-edit-panel">
+        <summary class="detail-edit-summary">Dagsetningar</summary>
+        <form method="post" action="{{ url_for('order_inline_update', order_id=order.id, section='dates') }}" class="detail-edit-form">
+            <div class="detail-edit-grid detail-edit-grid--dates">
+                <div class="detail-edit-field">
+                    <label for="inline-date_requested">Beiðni</label>
+                    <input type="date" id="inline-date_requested" name="date_requested"
+                           value="{{ order.date_requested or '' }}">
+                </div>
+                <div class="detail-edit-field">
+                    <label for="inline-date_ordered">Pöntun send</label>
+                    <input type="date" id="inline-date_ordered" name="date_ordered"
+                           value="{{ order.date_ordered or '' }}">
+                </div>
+                <div class="detail-edit-field">
+                    <label for="inline-estimated_arrival">Áætluð koma</label>
+                    <input type="date" id="inline-estimated_arrival" name="estimated_arrival"
+                           value="{{ order.estimated_arrival or '' }}">
+                </div>
+                <div class="detail-edit-field">
+                    <label for="inline-date_arrived">Vara komin</label>
+                    <input type="date" id="inline-date_arrived" name="date_arrived"
+                           value="{{ order.date_arrived or '' }}">
+                </div>
+                <div class="detail-edit-field">
+                    <label for="inline-date_completed">Lokið</label>
+                    <input type="date" id="inline-date_completed" name="date_completed"
+                           value="{{ order.date_completed or '' }}">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-secondary btn-sm">Vista dagsetningar</button>
+        </form>
+    </details>
+
+    <details class="detail-edit-panel">
+        <summary class="detail-edit-summary">Innri athugasemd</summary>
+        <form method="post" action="{{ url_for('order_inline_update', order_id=order.id, section='notes') }}" class="detail-edit-form">
+            <div class="detail-edit-field detail-edit-field--wide">
+                <label for="inline-notes">Athugasemd (ekki sýnileg viðskiptavini)</label>
+                <textarea id="inline-notes" name="notes" rows="2"
+                          placeholder="Stutt skráning, t.d. litur eða sérósk">{{ order.notes or '' }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-secondary btn-sm">Vista athugasemd</button>
+        </form>
+    </details>
+</section>

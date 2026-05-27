@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="is">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prufutímabil lokið — Muninn</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="trial-expired-wrap">
+        <div class="trial-expired-card">
+            <h1>Prufutímabil lokið</h1>
+            <p>14 daga prufuáskrift Muninn er útrunnin{% if trial_expires_on %} (lauk {{ trial_expires_on }}){% endif %}.</p>
+            <p>Viltu halda áfram? Hafðu samband við <strong>Tölvuhvíslarinn</strong> til að virkja áskrift.</p>
+            <p class="trial-expired-contact">
+                <a href="mailto:tolvuhvislarinn@tolvuhvislarinn.is">tolvuhvislarinn@tolvuhvislarinn.is</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

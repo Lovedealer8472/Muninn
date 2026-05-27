@@ -63,62 +63,59 @@
 
 <div class="board">
     {% for status in statuses %}
-    <div class="column">
+    <div class="column" data-status="{{ status }}">
         <div class="column-header" title="{{ status_help.get(status, '') }}">
             <span>{{ status }}</span>
             <span class="count">{{ columns[status]|length }}</span>
         </div>
-        <div class="column-cards">
+        <div class="column-cards" data-drop-status="{{ status }}">
             {% for order in columns[status] %}
             <div class="card
                 {%- if order.is_pickup %} card-pickup
                 {%- elif order.priority == 'Brýnt' %} priority-brýnt
                 {%- elif order.priority == 'Mikilvægt' %} priority-mikilvægt
                 {%- elif order.idle_days >= 7 %} card-stale{% endif %}"
-                 onclick="window.location='{{ url_for('order_detail', order_id=order.id) }}'"
-            >
-                <div class="card-customer">{{ order.customer_name }}</div>
-                <div class="card-product">{{ order.product_name }}{% if order.product_model %} – {{ order.product_model }}{% endif %}</div>
-                <div class="card-meta">
-                    {% if order.is_pickup %}
-                        <span class="badge badge-pickup">Til afhendingar</span>
-                    {% endif %}
-                    {% if order.phone %}
-                        <span class="badge badge-phone">{{ order.phone }}</span>
-                    {% endif %}
-                    {% if order.contact_short %}
-                        <span class="badge badge-contact" title="{{ order.contact_status }}">{{ order.contact_short }}</span>
-                    {% endif %}
-                    {% if order.is_overdue %}
-                        <span class="badge badge-overdue" title="Yfir áætlun">Seinkað{% if order.estimated_arrival %} · {{ order.estimated_arrival }}{% endif %}</span>
-                    {% elif order.estimated_arrival %}
-                        <span class="badge badge-eta">ETA: {{ order.estimated_arrival }}</span>
-                    {% endif %}
-                    {% if order.idle_days >= 1 %}
-                        <span class="badge badge-idle" title="Síðast uppfært">{{ order.idle_days }}d</span>
-                    {% endif %}
-                    {% if order.comment_count %}
-                        <span class="badge badge-comments" title="{{ order.comment_count }} athugasemd(ir)">Umm. {{ order.comment_count }}</span>
-                    {% endif %}
-                    <span class="badge badge-payment-{{ order.payment_status|lower }}">{{ order.payment_status }}</span>
+                 data-order-id="{{ order.id }}"
+                 data-status="{{ order.status }}"
+                 data-detail-url="{{ url_for('order_detail', order_id=order.id) }}">
+                <div class="card-row">
+                    <span class="card-drag-handle" draggable="false" aria-label="Draga pöntun" title="Draga á milli dálka">⠿</span>
+                    <div class="card-body">
+                        <div class="card-customer">{{ order.customer_name }}</div>
+                        <div class="card-product">{{ order.product_name }}{% if order.product_model %} – {{ order.product_model }}{% endif %}</div>
+                        <div class="card-meta">
+                            {% if order.is_pickup %}
+                                <span class="badge badge-pickup">Til afhendingar</span>
+                            {% endif %}
+                            {% if order.phone %}
+                                <span class="badge badge-phone">{{ order.phone }}</span>
+                            {% endif %}
+                            {% if order.contact_short %}
+                                <span class="badge badge-contact" title="{{ order.contact_status }}">{{ order.contact_short }}</span>
+                            {% endif %}
+                            {% if order.is_overdue %}
+                                <span class="badge badge-overdue" title="Yfir áætlun">Seinkað{% if order.estimated_arrival %} · {{ order.estimated_arrival }}{% endif %}</span>
+                            {% elif order.estimated_arrival %}
+                                <span class="badge badge-eta">ETA: {{ order.estimated_arrival }}</span>
+                            {% endif %}
+                            {% if order.idle_days >= 1 %}
+                                <span class="badge badge-idle" title="Síðast uppfært">{{ order.idle_days }}d</span>
+                            {% endif %}
+                            {% if order.comment_count %}
+                                <span class="badge badge-comments" title="{{ order.comment_count }} athugasemd(ir)">Umm. {{ order.comment_count }}</span>
+                            {% endif %}
+                            <span class="badge badge-payment-{{ order.payment_status|lower }}">{{ order.payment_status }}</span>
+                        </div>
+                    </div>
                 </div>
-                {% if is_stjori %}
-                <form class="card-status-form" method="post"
-                      action="{{ url_for('order_status', order_id=order.id) }}"
-                      onclick="event.stopPropagation();">
-                    <select name="status" onchange="this.form.submit()" aria-label="Breyta stöðu">
-                        {% for s in statuses %}
-                            <option value="{{ s }}" {% if s == order.status %}selected{% endif %}>{{ s }}</option>
-                        {% endfor %}
-                    </select>
-                </form>
-                {% endif %}
             </div>
             {% endfor %}
         </div>
     </div>
     {% endfor %}
 </div>
+
+<script id="board-dnd-config" type="application/json">{{ {"statuses": statuses, "isStjori": is_stjori}|tojson }}</script>
 
 <script>
 (function () {
@@ -156,4 +153,6 @@
 })();
 </script>
 <script src="{{ url_for('static', filename='status_legend.js') }}"></script>
+<script src="{{ url_for('static', filename='sortable.min.js') }}"></script>
+<script src="{{ url_for('static', filename='board_dnd.js') }}"></script>
 {% endblock %}

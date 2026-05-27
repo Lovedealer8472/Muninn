@@ -20,6 +20,21 @@
     <div id="email-notice" class="email-notice email-notice--{{ email_notice.kind }}" role="status"
          {% if email_notice.poll %}data-email-poll="{{ order.id }}"{% endif %}>{{ email_notice.text }}</div>
     {% endif %}
+    {% if can_archive %}
+    <div class="archive-banner{% if show_archive_prompt %} archive-banner--prompt{% endif %}" role="region" aria-label="Geymsla">
+        <p class="archive-banner-text">
+            {% if show_archive_prompt %}
+            Pöntun afhent og greidd — geyma og fjarlægja af borði?
+            {% else %}
+            Lokið og greitt — geyma til að hreinsa borðið.
+            {% endif %}
+        </p>
+        <form method="post" action="{{ url_for('order_archive', order_id=order.id) }}"
+              onsubmit="return confirm('Geyma pöntun og fjarlægja af borði? Stjóri getur endurheimt úr Rusl innan 30 daga.');">
+            <button type="submit" class="btn btn-primary btn-sm">Geyma</button>
+        </form>
+    </div>
+    {% endif %}
     <div class="detail-card">
         <div class="detail-hero">
             <div class="detail-hero-main">
@@ -41,47 +56,36 @@
             </div>
             <div class="detail-actions" aria-label="Aðgerðir">
                 {% include 'qr_modal.html' %}
+                {% if not detail_inline_edit %}
                 <a class="btn btn-secondary" href="{{ url_for('order_edit', order_id=order.id) }}">Breyta</a>
+                {% endif %}
                 <a class="btn btn-secondary" href="{{ url_for('order_print', order_id=order.id) }}" target="_blank" rel="noopener">Prenta</a>
 
                 {% if status_idx < statuses|length - 1 %}
-                <button type="button" class="btn btn-primary" id="status-open-btn" title="Færa í {{ statuses[status_idx + 1] }}">Færa áfram</button>
-
-                <div id="status-modal" class="qr-modal" hidden aria-hidden="true">
-                    <div class="qr-modal-backdrop" data-status-close></div>
-                    <div class="qr-modal-panel" role="dialog" aria-labelledby="status-modal-title" style="text-align: left;">
-                        <h3 id="status-modal-title" style="margin-top: 0;">Færa áfram í {{ statuses[status_idx + 1] }}</h3>
-                        <p class="qr-modal-hint" style="margin-bottom: 1rem; font-size: .9rem;">Ertu viss um að þú viljir færa þessa pöntun á næsta stig?</p>
-                        
-                        <form method="post" action="{{ url_for('order_status', order_id=order.id) }}">
-                            <input type="hidden" name="status" value="{{ statuses[status_idx + 1] }}">
-                            {% if statuses[status_idx + 1] in ['Staðfest', 'Komið'] %}
-                            <div class="form-group form-group--check" style="margin-bottom: 1.5rem; justify-content: flex-start;">
-                                <input type="checkbox" id="send_notification_modal" name="send_notification" value="1"
-                                       {% if not order.suppress_auto_email %}checked{% endif %}>
-                                <label for="send_notification_modal">Senda tilkynningu í tölvupósti til viðskiptavinar</label>
-                            </div>
-                            {% if order.suppress_auto_email %}
-                            <p class="qr-modal-hint" style="margin-top: -.75rem; margin-bottom: 1rem;">Pöntun var endurheimt úr rusli — póstur sendist ekki nema þú hakarí við.</p>
-                            {% endif %}
-                            {% elif statuses[status_idx + 1] != 'Lokið' %}
-                            <div class="form-group form-group--check" style="margin-bottom: 1.5rem; justify-content: flex-start;">
-                                <input type="checkbox" id="send_notification_modal" name="send_notification" value="1">
-                                <label for="send_notification_modal">Senda tilkynningu í tölvupósti til viðskiptavinar</label>
-                            </div>
-                            {% else %}
-                            <p class="qr-modal-hint" style="margin-bottom: 1rem;">Enginn póstur sendur við afhendingu (Lokið).</p>
-                            {% endif %}
-                            <div class="qr-modal-actions" style="gap: .5rem; justify-content: flex-start;">
-                                <button type="submit" class="btn btn-primary">Færa áfram</button>
-                                <button type="button" class="btn btn-secondary" data-status-close>Hætta við</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+                <form class="detail-action-form" method="post"
+                      action="{{ url_for('order_status', order_id=order.id) }}">
+                    <input type="hidden" name="status" value="{{ statuses[status_idx + 1] }}">
+                    <button type="submit" class="btn btn-primary"
+                            title="Færa í {{ statuses[status_idx + 1] }}{% if statuses[status_idx + 1] == 'Komið' and order.email and not order.suppress_auto_email %} — sendir póst{% endif %}">
+                        Færa áfram
+                    </button>
+                </form>
                 {% endif %}
 
-                {% if is_stjori %}
+                {% set email_confirm = 'Viltu senda póst til ' ~ order.email ~ ' miðað við stöðu «' ~ order.status ~ '»?' %}
+                <form class="detail-action-form" method="post"
+                      action="{{ url_for('order_send_email', order_id=order.id) }}"
+                      onsubmit="return confirm({{ email_confirm | tojson }});">
+                    <button type="submit" class="btn btn-secondary"
+                            {% if not order.email %}disabled title="Enginn netfang skráður"{% endif %}>
+                        Email
+                    </button>
+                </form>
+                {% if order.suppress_auto_email %}
+                <p class="detail-email-hint">Sjálfvirkur póstur við Komið er slökktur eftir endurheimt úr rusli — notaðu «Email» ef þarf.</p>
+                {% endif %}
+
+                {% if is_stjori and not can_archive %}
                 <form class="detail-action-form" method="post" action="{{ url_for('order_delete', order_id=order.id) }}"
                       onsubmit="return confirm('Færa pöntun í rusl? Hægt að endurheimta innan 30 daga.');">
                     <button type="submit" class="btn btn-danger" title="Færa í rusl">Eyða</button>
@@ -92,24 +96,24 @@
             </div>
         </div>
 
-        <dl class="detail-grid detail-grid--compact">
-            <dt>Símanúmer</dt>
-            <dd>{{ order.phone or '–' }}</dd>
-
-            <dt>Netfang</dt>
-            <dd>{{ order.email or '–' }}</dd>
-
-            <dt>Birgir</dt>
-            <dd>{{ order.supplier or '–' }}</dd>
-
-            <dt>Forgangur</dt>
-            <dd>{{ order.priority }}</dd>
-
-            <dt>Greiðslustaða</dt>
-            <dd>{{ order.payment_status }}</dd>
-
-            <dt>Samskiptastaða</dt>
-            <dd>
+        <div class="detail-quick-fields{% if detail_inline_edit %} detail-quick-fields--triple{% endif %}" aria-label="Flýtivalkostir">
+            <div class="detail-field detail-field--action">
+                <span class="detail-field-label">Greiðsla</span>
+                <form method="post"
+                      action="{{ url_for('order_payment_status', order_id=order.id) }}"
+                      class="inline-select-form inline-select-form--payment">
+                    <select name="payment_status" onchange="this.form.submit()"
+                            aria-label="Breyta greiðslustöðu"
+                            class="payment-select payment-select--{{ order.payment_status|lower }}">
+                        {% for opt in payment_options %}
+                            <option value="{{ opt }}"
+                                {% if opt == order.payment_status %}selected{% endif %}>{{ opt }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+            <div class="detail-field detail-field--action">
+                <span class="detail-field-label">Samskipti</span>
                 <form method="post"
                       action="{{ url_for('order_contact_status', order_id=order.id) }}"
                       class="inline-select-form">
@@ -117,39 +121,88 @@
                             aria-label="Breyta samskiptastöðu">
                         {% for opt in contact_options %}
                             <option value="{{ opt }}"
-                                {% if opt == order.contact_status %}selected{% endif %}>
-                                {{ opt }}
-                            </option>
+                                {% if opt == order.contact_status %}selected{% endif %}>{{ opt }}</option>
                         {% endfor %}
                     </select>
                 </form>
-            </dd>
+            </div>
+            {% if detail_inline_edit %}
+            <div class="detail-field detail-field--action">
+                <span class="detail-field-label">Forgangur</span>
+                <form method="post"
+                      action="{{ url_for('order_priority', order_id=order.id) }}"
+                      class="inline-select-form">
+                    <select name="priority" onchange="this.form.submit()"
+                            aria-label="Breyta forgangi">
+                        {% for opt in priority_options %}
+                            <option value="{{ opt }}"
+                                {% if opt == order.priority %}selected{% endif %}>{{ opt }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+            {% endif %}
+        </div>
 
-            <dt>Dagsetning beiðni</dt>
-            <dd>{{ order.date_requested or '–' }}</dd>
-
-            <dt>Pöntun send</dt>
-            <dd>{{ order.date_ordered or '–' }}</dd>
-
-            <dt>Áætluð koma</dt>
-            <dd>
-                {{ order.estimated_arrival or '–' }}
-                {% if order.estimated_arrival and order.estimated_arrival < today and order.status not in ['Komið', 'Lokið'] %}
-                    <span class="badge badge-overdue">Seinkað</span>
-                {% endif %}
-            </dd>
-
-            <dt>Vara komin</dt>
-            <dd>{{ order.date_arrived or '–' }}</dd>
-
-            <dt>Lokið</dt>
-            <dd>{{ order.date_completed or '–' }}</dd>
-
-            <dt>Skráð / uppfært</dt>
-            <dd class="detail-meta-dates">{{ order.created_at[:16].replace('T', ' ') }} · {{ order.updated_at[:16].replace('T', ' ') }}</dd>
+        <dl class="detail-grid detail-grid--compact">
+            <div class="detail-field">
+                <dt>Símanúmer</dt>
+                <dd>{{ order.phone or '–' }}</dd>
+            </div>
+            <div class="detail-field">
+                <dt>Netfang</dt>
+                <dd>{{ order.email or '–' }}</dd>
+            </div>
+            <div class="detail-field">
+                <dt>Birgir</dt>
+                <dd>{{ order.supplier or '–' }}</dd>
+            </div>
+            {% if not detail_inline_edit %}
+            <div class="detail-field">
+                <dt>Forgangur</dt>
+                <dd>{{ order.priority }}</dd>
+            </div>
+            {% endif %}
+            <div class="detail-field">
+                <dt>Dagsetning beiðni</dt>
+                <dd>{{ order.date_requested or '–' }}</dd>
+            </div>
+            <div class="detail-field">
+                <dt>Pöntun send</dt>
+                <dd>{{ order.date_ordered or '–' }}</dd>
+            </div>
+            <div class="detail-field">
+                <dt>Áætluð koma</dt>
+                <dd>
+                    {{ order.estimated_arrival or '–' }}
+                    {% if order.estimated_arrival and order.estimated_arrival < today and order.status not in ['Komið', 'Lokið'] %}
+                        <span class="badge badge-overdue">Seinkað</span>
+                    {% endif %}
+                </dd>
+            </div>
+            <div class="detail-field">
+                <dt>Vara komin</dt>
+                <dd>{{ order.date_arrived or '–' }}</dd>
+            </div>
+            <div class="detail-field">
+                <dt>Lokið</dt>
+                <dd>{{ order.date_completed or '–' }}</dd>
+            </div>
+            <div class="detail-field detail-field--wide">
+                <dt>Skráð / uppfært</dt>
+                <dd class="detail-meta-dates">{{ order.created_at[:16].replace('T', ' ') }} · {{ order.updated_at[:16].replace('T', ' ') }}</dd>
+            </div>
         </dl>
 
-        {% if order.notes %}
+        {% if detail_inline_edit %}
+        {% include 'order_detail_inline.html' %}
+        {% if is_stjori %}
+        <p class="detail-legacy-edit">
+            <a href="{{ url_for('order_edit', order_id=order.id) }}">Full breyting (gamalt form)</a>
+            — aðeins ef þörf er á stöðubreytingu utan borðs.
+        </p>
+        {% endif %}
+        {% elif order.notes %}
         <div class="detail-notes">
             <h3>Innri athugasemd</h3>
             <p>{{ order.notes }}</p>
@@ -192,6 +245,10 @@
                         <span class="order-saga-text">Ummæli: {{ e.new_value }}</span>
                     {% elif e.field_name == '_email_notify' %}
                         <span class="order-saga-text">Póstur: {{ e.new_value }}</span>
+                    {% elif e.field_name == '_archived' %}
+                        <span class="order-saga-text">Geymt af borði</span>
+                    {% elif e.field_name == '_deleted' %}
+                        <span class="order-saga-text">Fært í rusl</span>
                     {% elif e.field_name == '_restored' %}
                         <span class="order-saga-text">Endurheimt úr rusli</span>
                     {% elif e.old_value %}
@@ -408,33 +465,6 @@
 </script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="{{ url_for('static', filename='qr.js') }}"></script>
-<script>
-(function() {
-    var openBtn = document.getElementById('status-open-btn');
-    var modal = document.getElementById('status-modal');
-    if (!openBtn || !modal) { return; }
-
-    function closeModal() {
-        modal.hidden = true;
-        modal.setAttribute('aria-hidden', 'true');
-        document.body.classList.remove('qr-modal-open');
-    }
-
-    function openModal() {
-        modal.hidden = false;
-        modal.setAttribute('aria-hidden', 'false');
-        document.body.classList.add('qr-modal-open');
-    }
-
-    openBtn.addEventListener('click', openModal);
-    modal.querySelectorAll('[data-status-close]').forEach(function (el) {
-        el.addEventListener('click', closeModal);
-    });
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && !modal.hidden) { closeModal(); }
-    });
-})();
-</script>
 <script>
 (function () {
     var banner = document.getElementById('email-notice');
