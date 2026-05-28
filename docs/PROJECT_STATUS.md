@@ -8,7 +8,7 @@ Muninn is a lightweight **special-order / repair tracking** tool: kanban board, 
 
 **Primary deploy target:** `th.tolvuhvislarinn.is` (`/opt/pantanir-tolvuhvisl` on edge `100.79.10.104`).
 
-**Trial / demo:** `pan.tolvuhvislarinn.is` (`/opt/pan-tolvuhvisl`, port 5003, 14-day `TRIAL_EXPIRES_AT`).
+**Trial / demo:** `pan.tolvuhvislarinn.is` (per-shop trials) · `demo.tolvuhvislarinn.is` (public Verkefni sandbox)
 
 **Not in scope unless asked:** `pantanakerfi.tolvuhvislarinn.is` (production Pantanakerfi branding).
 

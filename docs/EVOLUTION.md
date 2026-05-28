@@ -152,6 +152,21 @@ Docs: `docs/PAN_TRIAL.md`, `docs/MARKET_RESEARCH.md`.
 
 ---
 
+## Phase 8 — Public demo & Verkefni (2026-05-26)
+
+**demo.tolvuhvislarinn.is** — permanent sandbox for site visitors:
+
+- `DEMO_MODE=1` — banner with login hint; no trial expiry wall  
+- Fictional seed data (`scripts/seed_demo_db.py`); weekly cron reset  
+- No SMTP on demo  
+- Linked from **tolvuhvislarinn.is/verkefni** (Muninn project card)
+
+Deploy: `deploy/deploy-demo.ps1` → `/opt/demo-tolvuhvisl` port **5004**.
+
+Docs: `docs/DEMO.md`.
+
+---
+
 ## Phase 7 — What Muninn is *not* (on purpose)
 
 Documented so future-you doesn’t scope-creep:
@@ -168,15 +183,17 @@ Documented so future-you doesn’t scope-creep:
 
 | URL | Service | Notes |
 |-----|---------|-------|
+| https://demo.tolvuhvislarinn.is | `demo-tolvuhvisl` | Public sandbox; weekly reset |
 | https://th.tolvuhvislarinn.is | `pantanir-tolvuhvisl` | Dev / dogfood; no trial expiry |
-| https://pan.tolvuhvislarinn.is | `pan-tolvuhvisl` | 14-day trial; demo data |
+| https://pan.tolvuhvislarinn.is | `pan-tolvuhvisl` | 14-day trial; shop-specific |
 | https://pantanakerfi.tolvuhvislarinn.is | `pantanakerfi` | Production Pantanakerfi — deploy only when asked |
 
 Deploy from Windows:
 
 ```powershell
-.\deploy\deploy-th.ps1   # TH
-.\deploy\deploy-pan.ps1  # trial instance
+.\deploy\deploy-demo.ps1  # public demo
+.\deploy\deploy-th.ps1    # TH
+.\deploy\deploy-pan.ps1   # sales trial instance
 ```
 
 ---
@@ -187,7 +204,8 @@ Deploy from Windows:
 |---------|--------|
 | `PWA_ENABLED=0` | Disable installable PWA |
 | `DETAIL_INLINE_EDIT=0` | Restore separate Breyta form |
-| `TRIAL_EXPIRES_AT` | Set on trial instances only; omit on TH/prod |
+| `TRIAL_EXPIRES_AT` | Set on trial instances only; omit on TH/prod/demo |
+| `DEMO_MODE=1` | Public sandbox banner (demo.tolvuhvislarinn.is) |
 | `LOG_LEVEL=DEBUG` | Verbose request logging |
 
 ---

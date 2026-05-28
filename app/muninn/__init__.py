@@ -13,6 +13,7 @@ from muninn.routes import register_routes
 from muninn.services import email as email_service
 from muninn.services import orders as orders_service
 from muninn.trial import trial_context, trial_expired, trial_expired_response
+from muninn.demo import demo_context
 
 
 APP_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -47,6 +48,7 @@ def create_app(test_config: dict | None = None):
 
     app.context_processor(inject_role_context)
     app.context_processor(trial_context)
+    app.context_processor(demo_context)
     register_routes(app)
 
     @app.before_request

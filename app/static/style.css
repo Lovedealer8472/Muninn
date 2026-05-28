@@ -743,6 +743,14 @@ a:hover { text-decoration: underline; }
     color: #ff8f73;
     border-bottom-color: rgba(255, 143, 115, 0.35);
 }
+.demo-banner {
+    background: #1a2e1a;
+    color: #9fd89f;
+    text-align: center;
+    padding: .45rem .75rem;
+    font-size: .82rem;
+    border-bottom: 1px solid rgba(159, 216, 159, 0.25);
+}
 .trial-expired-wrap {
     min-height: 100vh;
     display: flex;
